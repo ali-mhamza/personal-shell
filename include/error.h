@@ -7,7 +7,6 @@
 #define NOT_EXEC        126
 #define NOT_FOUND       127
 #define INVALID_EXIT    128
-#define TERM_CTRL_C     130
 #define EXIT_RANGE      255
 
 void reportError(sConfig* conf, unsigned char exitCode, 
