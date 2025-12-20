@@ -132,8 +132,8 @@ sConfig* initConfig(char** envp)
 void resetConfigCWD(sConfig* conf)
 {
     free(conf->cwd);
-    char temp[256] = {0};
-    getcwd(temp, 255);
+    char temp[1024] = {0};
+    getcwd(temp, 1023);
     conf->cwd = strdup(temp);
 }
 
