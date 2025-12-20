@@ -137,7 +137,7 @@ void resetConfigCWD(sConfig* conf)
     conf->cwd = strdup(temp);
 }
 
-char** formConfEnv(envArray* arr, size_t* size)
+char** formExecEnv(envArray* arr, size_t* size)
 {
     char** newEnv = calloc((arr->count + 1), sizeof(char*));
     if (newEnv == NULL)

@@ -20,13 +20,13 @@ typedef struct shellConfig {
     envArray*       env;        // Our local environment variables.
 } sConfig;
 
-sConfig* initConfig(char** envp);
-void resetConfigCWD(sConfig* conf);
-void freeConfig(sConfig** conf);
+sConfig*    initConfig(char** envp);
+void        resetConfigCWD(sConfig* conf);
+void        freeConfig(sConfig** conf);
 
-char* getEnvVar(envArray* arr, char* varName);
-void setEnvVar(envArray* arr, char* varName, char* varValue);
-void removeEnvVar(envArray* arr, char* varName);
-char** formConfEnv(envArray* arr, size_t* size);
+char*   getEnvVar(envArray* arr, char* varName);
+void    setEnvVar(envArray* arr, char* varName, char* varValue);
+void    removeEnvVar(envArray* arr, char* varName);
+char**  formExecEnv(envArray* arr, size_t* size);
 
 #endif

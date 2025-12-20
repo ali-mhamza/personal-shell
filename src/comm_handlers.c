@@ -35,8 +35,8 @@ void handle_cd(TokenObj* tokens, sConfig* conf)
 {
     if (tokens->count > 2)
     {
-        reportError(conf, GEN_ERROR,
-            "Command Error", "Too many arguments for command '%s'.",
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Command Error", "Too many arguments for command '%s'.",
             tokens->tokStrs[0]);
         return;
     }
@@ -55,8 +55,8 @@ void handle_cd(TokenObj* tokens, sConfig* conf)
     }
     if (ret == -1)
     {
-        reportError(conf, GEN_ERROR,
-            "Argument Error", "%s.", strerror(errno));
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Argument Error", "%s.", strerror(errno));
         return;
     }
 
@@ -68,8 +68,8 @@ void handle_pwd(TokenObj* tokens, sConfig* conf)
 {
     if (tokens->count > 1)
     {
-        reportError(conf, GEN_ERROR,
-            "Command Error", "Too many arguments for command '%s'.",
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Command Error", "Too many arguments for command '%s'.",
             tokens->tokStrs[0]);
         return;
     }
@@ -87,8 +87,8 @@ void handle_export(TokenObj* tokens, sConfig* conf)
             // It doesn't do complete verification first.
             if (!isValidVar(tokens->tokStrs[i]))
             {
-                reportError(conf, GEN_ERROR,
-                    "Argument Error", "Token '%s' is not a valid identifier.",
+                setConfigExitCode(conf, GEN_ERROR);
+                reportError("Argument Error", "Token '%s' is not a valid identifier.",
                     tokens->tokStrs[i]);
                 return;
             }
@@ -110,8 +110,8 @@ void handle_env(TokenObj* tokens, sConfig* conf)
 {
     if (tokens->count > 1)
     {
-        reportError(conf, GEN_ERROR,
-            "Command Error", "Too many arguments for command '%s'.",
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Command Error", "Too many arguments for command '%s'.",
             tokens->tokStrs[0]);
         return;
     }

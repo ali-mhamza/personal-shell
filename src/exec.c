@@ -87,7 +87,7 @@ static char* getExecFile(sConfig* conf, char* path)
 
     char* file = searchCurrentDir(conf, path);
     if (file != NULL)
-        return (file);
+        return file;
     else
         return searchPath(conf, path);
 }
@@ -103,23 +103,23 @@ void runExec(char* path, char** args, sConfig* conf)
 
     if (command == NULL)
     {
-        reportError(conf, NOT_FOUND,
-            "Command Error", "Command '%s' not found.", path);
+        setConfigExitCode(conf, NOT_FOUND);
+        reportError("Command Error", "Command '%s' not found.", path);
         return;
     }
     else if (access(command, X_OK) == -1)
     {
-        reportError(conf, NOT_EXEC,
-            "Command Error", "Command '%s' cannot be executed.", command);
+        setConfigExitCode(conf, NOT_EXEC);
+        reportError("Command Error", "Command '%s' cannot be executed.", command);
         return;
     }
 
     size_t envpSize;
-    char** tempEnvp = formConfEnv(conf->env, &envpSize);
+    char** tempEnvp = formExecEnv(conf->env, &envpSize);
     if (tempEnvp == NULL)
     {
-        reportError(conf, GEN_ERROR,
-            "Internal Error", "Failed memory allocation.");
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Internal Error", "Failed memory allocation.");
         return;
     }
 
@@ -128,8 +128,10 @@ void runExec(char* path, char** args, sConfig* conf)
     {
         int ret = execve(command, args, tempEnvp);
         if (ret == -1)
-            reportError(conf, GEN_ERROR,
-                "Command Failure", "%s.", strerror(errno));
+        {
+            setConfigExitCode(conf, GEN_ERROR);
+            reportError("Command Failure", "%s.", strerror(errno));
+        }
         exit(0); // Temporary.
     }
     else

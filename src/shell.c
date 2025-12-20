@@ -46,9 +46,10 @@ static void mapCommands(TokenObj* tokens, sConfig* conf)
     else if (tokens->tokTypes[0] == T_WORD)
         runExec(tokens->tokStrs[0], &tokens->tokStrs[0], conf);
     else
-        reportError(conf, GEN_ERROR,
-            "Syntax Error", "Unexpected token '%s'.",
-            tokens->tokStrs[0]);
+    {
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Syntax Error", "Unexpected token '%s'.", tokens->tokStrs[0]);
+    }
 }
 
 static void setUpHandler(sConfig* conf, int sig)
@@ -60,8 +61,8 @@ static void setUpHandler(sConfig* conf, int sig)
     
     if (sigaction(sig, &sa, NULL) == -1)
     {
-        reportError(conf, GEN_ERROR, "Internal Error",
-            "Failed signal handling.");
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Internal Error", "Failed signal handling.");
         exit(1);
     }
 }
@@ -116,7 +117,7 @@ int main(int argc, char* argv[], char* envp[])
 
         if (gSignal == SIGINT)
         {
-            conf->exitCode = gSignal;
+            setConfigExitCode(conf, gSignal + 128);
             gSignal = 0;
         }
 

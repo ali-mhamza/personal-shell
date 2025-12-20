@@ -166,8 +166,8 @@ TokenObj* getTokens(sConfig* conf, char* line)
                     addWordToken(conf, obj, &line[i], &i);
                 else
                 {
-                    reportError(conf, GEN_ERROR,
-                        "Token Error", "Unrecognized token '%c'.", line[i]);
+                    setConfigExitCode(conf, GEN_ERROR);
+                    reportError("Token Error", "Unrecognized token '%c'.", line[i]);
                     // Must free and return NULL here to signal an 
                     // error in main().
                     freeTokenObj(&obj);

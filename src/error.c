@@ -1,11 +1,11 @@
 #include "../include/error.h"
 #include "../include/common.h"
+#include "../include/config.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 
-void reportError(sConfig* conf, unsigned char exitCode, 
-    const char* type, const char* format, ...)
+void reportError(const char* type, const char* format, ...)
 {
     write(2, type, strlen(type));
     write(2, ": ", 2);
@@ -14,5 +14,4 @@ void reportError(sConfig* conf, unsigned char exitCode,
     vfprintf(stderr, format, ap);
     write(2, "\n", 1);
     va_end(ap);
-    conf->exitCode = exitCode;
 }

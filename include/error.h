@@ -9,7 +9,11 @@
 #define INVALID_EXIT    128     // Exit code format is invalid (e.g., decimal number or containing letters).
 #define EXIT_RANGE      255     // Exit code is outside of valid range 0-255 (i.e., negative or >255).
 
-void reportError(sConfig* conf, unsigned char exitCode,
-    const char* type, const char* format, ...);
+static inline void setConfigExitCode(sConfig* conf, unsigned char exitCode)
+{
+    conf->exitCode = exitCode;
+}
+
+void reportError(const char* type, const char* format, ...);
 
 #endif
