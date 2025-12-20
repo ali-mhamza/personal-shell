@@ -10,54 +10,47 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+// We can optimize executable searching (not just directory
+// searching) further by using 'execve probing'. Essentially,
+// you call execve with the path you currently have. If it
+// succeeds, nothing more is to be done. If it fails, we check
+// the errno value.
+// - If it's ENOENT, we try the next directory.
+// - If it's EACCES, the file isn't executable.
+// - If it's EISDIR, the "file" is a directory.
+// The kernel handles all the work for us and will do these
+// checks much faster.
+// Sticking with this approach for the moment since it's
+// somewhat simpler (and it's fast enough).
+
 static char* checkDirContent(char* dirPath, char* filePath)
 {
-    DIR* dir = opendir(dirPath);
-    if (dir == NULL)
-        return NULL;
-    size_t fileLen = strlen(filePath);
+    char stackPathBuf[1024];
+    // dirPath/entryName[\0]
+    size_t needed = strlen(dirPath) + 1 + strlen(filePath) + 1;
+    char* fullPath = stackPathBuf;
+    if (needed > sizeof(stackPathBuf))
+        fullPath = calloc(needed, sizeof(char));
+    strcpy(fullPath, dirPath);
+    strcat(fullPath, "/");
+    strcat(fullPath, filePath);
 
-    if (dir != NULL)
+    if (access(fullPath, F_OK) == 0) // Check if file exists.
     {
-        struct dirent* entry;
-        while ((entry = readdir(dir)) != NULL)
+        struct stat statInfo;
+        stat(fullPath, &statInfo);
+        if (S_ISREG(statInfo.st_mode)) // Check that it's a regular file.
         {
-            if (fileLen != strlen(entry->d_name))
-                continue;
-
-            if (!strcmp(entry->d_name, filePath))
-            {
-                char stackPathBuf[1024];
-                // dirPath/entryName[\0]
-                size_t needed = strlen(dirPath) + 1 + strlen(entry->d_name) + 1;
-                char* fullPath = stackPathBuf;
-                if (needed > sizeof(stackPathBuf))
-                    fullPath = calloc(needed, sizeof(char));
-                strcpy(fullPath, dirPath);
-                strcat(fullPath, "/");
-                strcat(fullPath, entry->d_name);
-
-                struct stat statInfo;
-                stat(fullPath, &statInfo);
-                if (S_ISREG(statInfo.st_mode))
-                {
-                    closedir(dir);
-                    if (fullPath == stackPathBuf)
-                        return strdup(fullPath);
-                    else
-                        return fullPath;
-                }
-                else
-                {
-                    if (fullPath != stackPathBuf)
-                        free(fullPath);
-                }
-            }
+            if (fullPath == stackPathBuf)
+                return strdup(fullPath);
+            else
+                return fullPath;
         }
     }
 
-    closedir(dir);
-    return (NULL);
+    if (fullPath != stackPathBuf)
+        free(fullPath);
+    return NULL;
 }
 
 static char* searchPath(sConfig* conf, char* path)
