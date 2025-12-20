@@ -1,6 +1,5 @@
 #include "../include/error.h"
 #include "../include/common.h"
-#include "../include/config.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>

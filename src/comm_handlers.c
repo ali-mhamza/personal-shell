@@ -1,6 +1,7 @@
 #include "../include/comm_handlers.h"
 #include "../include/common.h"
 #include "../include/config.h"
+#include "../include/env.h"
 #include "../include/error.h"
 #include "../include/sighandle.h"
 #include <errno.h>
