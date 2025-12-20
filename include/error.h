@@ -3,11 +3,11 @@
 
 #include "config.h"
 
-#define GEN_ERROR       1
-#define NOT_EXEC        126
-#define NOT_FOUND       127
-#define INVALID_EXIT    128
-#define EXIT_RANGE      255
+#define GEN_ERROR       1       // Generic error exit code.
+#define NOT_EXEC        126     // File given is not executable (lack of permissions, wrong file type, etc.).
+#define NOT_FOUND       127     // Executable given was not found.
+#define INVALID_EXIT    128     // Exit code format is invalid (e.g., decimal number or containing letters).
+#define EXIT_RANGE      255     // Exit code is outside of valid range 0-255 (i.e., negative or >255).
 
 void reportError(sConfig* conf, unsigned char exitCode,
     const char* type, const char* format, ...);
