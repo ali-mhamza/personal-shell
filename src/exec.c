@@ -4,6 +4,8 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -11,28 +13,44 @@
 static char* checkDirContent(char* dirPath, char* filePath)
 {
     DIR* dir = opendir(dirPath);
+    if (dir == NULL)
+        return NULL;
+    size_t fileLen = strlen(filePath);
+
     if (dir != NULL)
     {
         struct dirent* entry;
         while ((entry = readdir(dir)) != NULL)
         {
-            char* temp = strjoin(dirPath, "/");
-            char* fullPath = strjoin(temp, entry->d_name);
-            free(temp);
+            if (fileLen != strlen(entry->d_name))
+                continue;
 
-            struct stat statInfo;
-            stat(fullPath, &statInfo);
-            if (S_ISREG(statInfo.st_mode))
+            if (!strcmp(entry->d_name, filePath))
             {
-                if (strlen(filePath) != strlen(entry->d_name))
-                {
-                    free(fullPath);
-                    continue;
-                }
-                if (!strcmp(entry->d_name, filePath))
+                char stackPathBuf[1024];
+                // dirPath/entryName[\0]
+                size_t needed = strlen(dirPath) + 1 + strlen(entry->d_name) + 1;
+                char* fullPath = stackPathBuf;
+                if (needed > sizeof(stackPathBuf))
+                    fullPath = calloc(needed, sizeof(char));
+                strcpy(fullPath, dirPath);
+                strcat(fullPath, "/");
+                strcat(fullPath, entry->d_name);
+
+                struct stat statInfo;
+                stat(fullPath, &statInfo);
+                if (S_ISREG(statInfo.st_mode))
                 {
                     closedir(dir);
-                    return fullPath;
+                    if (fullPath == stackPathBuf)
+                        return strdup(fullPath);
+                    else
+                        return fullPath;
+                }
+                else
+                {
+                    if (fullPath != stackPathBuf)
+                        free(fullPath);
                 }
             }
         }
@@ -64,30 +82,15 @@ static char* searchPath(sConfig* conf, char* path)
     return NULL;
 }
 
-static char* searchCurrentDir(sConfig* conf, char* path)
-{
-    if (strlen(conf->cwd) != 0)
-        return checkDirContent(conf->cwd, path);
-    return NULL;
-}
-
 static char* getExecFile(sConfig* conf, char* path)
 {
-    if (path == NULL)
-        return NULL;
-    if (path[0] == '/')
-        return path;
-    else if (strchr(path, '/') != NULL)
-        return path;
-    else if (strlen(path) > 2)
+    if (strchr(path, '/') != NULL)
     {
-        if (!strncmp(path, "./", 2) || !strncmp(path, "../", 3))
+        if (access(path, F_OK) == 0)
             return path;
+        else
+            return NULL; // runExec will report an error properly.
     }
-
-    char* file = searchCurrentDir(conf, path);
-    if (file != NULL)
-        return file;
     else
         return searchPath(conf, path);
 }
@@ -110,7 +113,8 @@ void runExec(char* path, char** args, sConfig* conf)
     else if (access(command, X_OK) == -1)
     {
         setConfigExitCode(conf, NOT_EXEC);
-        reportError("Command Error", "Command '%s' cannot be executed.", command);
+        reportError("Command Error",
+            "Command '%s' cannot be executed (permission denied).", command);
         return;
     }
 
