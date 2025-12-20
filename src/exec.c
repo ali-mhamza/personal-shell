@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -15,7 +16,8 @@
 // you call execve with the path you currently have. If it
 // succeeds, nothing more is to be done. If it fails, we check
 // the errno value.
-// - If it's ENOENT, we try the next directory.
+// - If it's ENOENT, we try the next directory (if searching the
+// path )
 // - If it's EACCES, the file isn't executable.
 // - If it's EISDIR, the "file" is a directory.
 // The kernel handles all the work for us and will do these
@@ -88,37 +90,49 @@ static char* getExecFile(sConfig* conf, char* path)
         return searchPath(conf, path);
 }
 
-void runExec(char* path, char** args, sConfig* conf)
+// Checks the executable (potentially) file and prepares
+// our environment variable array.
+// Returns the array on complete success.
+// Otherwise returns NULL.
+static char** checkExecFile(sConfig* conf, char* command)
 {
-    char* command = getExecFile(conf, path);
-    // execve must receive a pathname that contains a /.
-    // Examples:
-    // 1. /bin/ls (absolute path). DONE.
-    // 2. ./run (relative path). DONE.
-    // 3. dir/run (relative to subdirectory). DONE.
-
     if (command == NULL)
     {
         setConfigExitCode(conf, NOT_FOUND);
-        reportError("Command Error", "Command '%s' not found.", path);
-        return;
+        reportError("Command Error", "Command '%s' not found.", command);
+        return NULL;
     }
     else if (access(command, X_OK) == -1)
     {
         setConfigExitCode(conf, NOT_EXEC);
         reportError("Command Error",
             "Command '%s' cannot be executed (permission denied).", command);
-        return;
+        return NULL;
     }
 
-    size_t envpSize;
-    char** tempEnvp = formExecEnv(conf->env, &envpSize);
+    char** tempEnvp = formExecEnv(conf->env);
     if (tempEnvp == NULL)
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Internal Error", "Failed memory allocation.");
-        return;
+        return NULL;
     }
+
+    return tempEnvp;
+}
+
+void runExec(char* path, char** args, sConfig* conf)
+{
+    char* command = getExecFile(conf, path);
+    char** tempEnvp = checkExecFile(conf, command);
+    if (tempEnvp == NULL)
+        return;
+
+    // execve must receive a pathname that contains a /.
+    // Examples:
+    // 1. /bin/ls (absolute path). DONE.
+    // 2. ./run (relative path). DONE.
+    // 3. dir/run (relative to subdirectory). DONE.
 
     pid_t id = fork();
     if (id == 0)
@@ -137,7 +151,7 @@ void runExec(char* path, char** args, sConfig* conf)
         waitpid(id, &status, 0);
         if (command != path) // To avoid double free-ing path later when freeing tokens.
             free(command);
-        for (size_t i = 0; i < envpSize; i++)
+        for (size_t i = 0; tempEnvp[i] != NULL; i++)
             free(tempEnvp[i]);
         free(tempEnvp);
         conf->exitCode = WEXITSTATUS(status);

@@ -27,6 +27,6 @@ void        freeConfig(sConfig** conf);
 char*   getEnvVar(envArray* arr, char* varName);
 void    setEnvVar(envArray* arr, char* varName, char* varValue);
 void    removeEnvVar(envArray* arr, char* varName);
-char**  formExecEnv(envArray* arr, size_t* size);
+char**  formExecEnv(envArray* arr);
 
 #endif
