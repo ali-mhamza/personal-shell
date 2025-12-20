@@ -9,7 +9,7 @@ void handleSigInt(int sig)
 {
     if (isatty(STDIN_FILENO))
     {
-        gSignal = 128 + sig;
+        gSignal = sig;
 
         rl_replace_line("^C", 0);
         rl_redisplay();
