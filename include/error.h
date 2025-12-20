@@ -9,7 +9,7 @@
 #define INVALID_EXIT    128
 #define EXIT_RANGE      255
 
-void reportError(sConfig* conf, unsigned char exitCode, 
+void reportError(sConfig* conf, unsigned char exitCode,
     const char* type, const char* format, ...);
 
 #endif
