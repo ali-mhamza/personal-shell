@@ -134,26 +134,15 @@ void runExec(char* path, char** args, sConfig* conf)
     // 2. ./run (relative path). DONE.
     // 3. dir/run (relative to subdirectory). DONE.
 
-    pid_t id = fork();
-    if (id == 0)
+    int ret = execve(command, args, tempEnvp);
+    if (ret == -1)
     {
-        int ret = execve(command, args, tempEnvp);
-        if (ret == -1)
-        {
-            setConfigExitCode(conf, GEN_ERROR);
-            reportError("Command Failure", "%s.", strerror(errno));
-        }
-        exit(0); // Temporary.
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Command Failure", "%s.", strerror(errno));
     }
-    else
-    {
-        int status;
-        waitpid(id, &status, 0);
-        if (command != path) // To avoid double free-ing path later when freeing tokens.
-            free(command);
-        for (size_t i = 0; tempEnvp[i] != NULL; i++)
-            free(tempEnvp[i]);
-        free(tempEnvp);
-        conf->exitCode = WEXITSTATUS(status);
-    }
+    if (command != path) // To avoid double free-ing path later when freeing tokens.
+        free(command);
+    for (size_t i = 0; tempEnvp[i] != NULL; i++)
+        free(tempEnvp[i]);
+    free(tempEnvp);
 }

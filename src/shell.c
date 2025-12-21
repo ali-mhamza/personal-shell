@@ -109,8 +109,12 @@ static void mapCommands(CommList* list, sConfig* conf)
 {
     if (list->count == 1) // No pipes.
     {
-        singleCommand(list, list->comms[0], conf);
-        return;
+        Command* comm = list->comms[0];
+        if (IS_COMMAND(comm->commType))
+        {
+            singleCommand(list, list->comms[0], conf);
+            return;
+        }
     }
     
     int inputFD = STDIN_FILENO;
