@@ -105,7 +105,7 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
     }
 }
 
-static void mapCommands(CommList* list, sConfig* conf)
+static void setUpCommands(CommList* list, sConfig* conf)
 {
     if (list->count == 1) // No pipes.
     {
@@ -179,36 +179,6 @@ static void setUpHandler(sConfig* conf, int sig)
     }
 }
 
-// Returns true if successful (or if no here-document is found).
-// Returns false on EOF error (i.e., delimiter was never reached).
-// static bool handleHereDoc(TokenObj* tokens, char* line)
-// {
-    // 1. Check if there string '<<' exists in the line.
-    // 2. If so, make sure you take its *last* occurrence.
-    // If it doesn't, return true.
-    // 3. Collect everything after the '<<' as the delimiter.
-    // 4. Perform any expansion in place on the delimiter (maybe tokenize it?).
-    // 5. Make a string buffer.
-    // 6. Keep running readline() until the delimiter is found.
-    // - Every time we read a line (that doesn't contain the
-    // delimiter), append it to the buffer and manually add a newline
-    // (we will have to update the lexer to properly handle newlines).
-    // - If you tokenized the delimiter, compare tokens and check if
-    // the delimiter tokens are *contained within* the input line tokens.
-    // If so, remove any extra tokens after it (and cut off any text on
-    // the last valid token if needed).
-    // - If you didn't tokenize it, use strstr directly with the input
-    // and delimiter. If it returns non-NULL, cut off everything from
-    // the pointer it returns onwards and append only that much to the
-    // buffer.
-    // - If at any point readline() hits EOF (check the usual conditions),
-    // report a warning and return false.
-    // 7. Tokenize the current string in the buffer.
-    // 8. Replace all the tokens before the *first* redirect (since we
-    // don't use anything up to that as input) in the token object with
-    // these tokens.
-// }
-
 static void checkEOF(sConfig* conf, char* line)
 {
     if (line == NULL)
@@ -242,14 +212,14 @@ static void execLine(sConfig* conf, char* line)
             freeTokenObj(&tokens);
             if (!list)
             {
-                if (conf->exitCode == 0)
+                if ((conf->exitCode == 0) && (gSignal == 0))
                 {
                     setConfigExitCode(conf, GEN_ERROR);
-                    reportError("Internal Error", "Failred to parse input.");
+                    reportError("Internal Error", "Failed to parse input.");
                 }
                 return;
             }
-            mapCommands(list, conf);
+            setUpCommands(list, conf);
             freeCommList(&list);
         }
     }
