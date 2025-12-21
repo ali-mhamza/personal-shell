@@ -239,7 +239,7 @@ int main(int argc, char* argv[], char* envp[])
     disableCtrlPrint();
 
     while (true)
-    {           
+    {
         errno = 0;
         char* prompt = makePrompt(conf);
         if (prompt == NULL)
