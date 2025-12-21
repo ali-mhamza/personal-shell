@@ -118,7 +118,7 @@ static void mapCommands(CommList* list, sConfig* conf)
     }
     
     int inputFD = STDIN_FILENO;
-    pid_t* processIDs = malloc(list->count);
+    pid_t* processIDs = malloc(list->count * sizeof(int));
 
     for (size_t i = 0; i < list->count; i++)
     {   
