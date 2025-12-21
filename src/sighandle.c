@@ -2,12 +2,20 @@
 #include "../include/common.h"
 #include <readline/readline.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
 
 void handleSigInt(int sig)
-{
+{   
+    if (gSignal == SIG_ATOMIC_MIN)
+    {
+        gSignal = sig;
+        write(1, "^C", 2);
+        return;
+    }
+    
     if (isatty(STDIN_FILENO))
     {
         gSignal = sig;
@@ -18,15 +26,10 @@ void handleSigInt(int sig)
         rl_redisplay();
         write(1, "\n", 1);
 
-        if (!strcmp(rl_prompt, "> "))
-        {
-            rl_done = 1;
-            return;
-        }
-
         rl_on_new_line();
         rl_replace_line("", 0);
         rl_redisplay();
+        
         return;
     }
 

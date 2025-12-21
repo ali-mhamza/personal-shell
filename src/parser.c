@@ -4,11 +4,13 @@
 #include "../include/sighandle.h"
 #include "../include/strbuf.h"
 #include <fcntl.h>
-#include <readline/readline.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "get_next_line.h"
 
 /* Commands. */
 
@@ -130,30 +132,37 @@ static char* consumeHereDocBody(sConfig* conf, char* delim, bool quoteDelim)
     
     while (true)
     {
-        char* line = readline("> ");
-        char* stop;
+        write(1, "> ", 2);
+        gSignal = SIG_ATOMIC_MIN;
+        char *line = get_next_line(0);
         if (gSignal == SIGINT)
         {
             freeBuf(&buf, FREE_CHARS);
-            rl_done = 0;
+            free(line);
             return NULL;
         }
-        else if (line == NULL) // Assuming for simplicity this is not due to an error.
+        
+        gSignal = 0;
+        if (line == NULL) // Assuming for simplicity this is not due to an error.
         {
             setConfigExitCode(conf, GEN_ERROR);
             reportError("Input Error",
                 "Input to here document was not terminated.");
+            freeBuf(&buf, FREE_CHARS);
             return NULL;
         }
-        else if ((stop = strstr(line, delim)) != NULL)
+        
+        char* stop;
+        if ((stop = strstr(line, delim)) != NULL)
         {
             appendBuf(buf, line, stop - line);
+            free(line);
             break;
         }
         else
         {
             appendBuf(buf, line, -1);
-            appendBuf(buf, "\n", -1);
+            free(line);
         }
     }
 

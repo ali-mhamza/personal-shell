@@ -259,6 +259,7 @@ int main(int argc, char* argv[], char* envp[])
         }
 
         execLine(conf, line);
+        gSignal = 0; // In case it was changed in this call.
         free(line);
     }
 }

@@ -1,14 +1,17 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Werror
-INCLUDE = -I/usr/local/include
-LIBS = -lreadline -lhistory
+GNL_DIR = get_next_line
+INCLUDE = -I/usr/local/include -I$(GNL_DIR)
+GNL_LIB = -lgnl
+RL_LIBS = -lreadline -lhistory -lgnl
 NAME = shell
 
 SRC_DIR = src
 SRCS = $(SRC_DIR)/*.c
 
 all:
-	@$(CC) $(CFLAGS) $(INCLUDE) $(SRCS) $(LIBS) -o $(NAME)
+	@make -C $(GNL_DIR) --no-print-directory
+	@$(CC) $(CFLAGS) $(INCLUDE) $(SRCS) -L$(GNL_DIR) $(GNL_LIB) $(RL_LIBS) -o $(NAME)
 
 fclean:
 	@rm -rf $(NAME)
