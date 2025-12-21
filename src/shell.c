@@ -130,9 +130,9 @@ static void mapCommands(CommList* list, sConfig* conf)
 
     for (size_t i = 0; i < list->count; i++)
     {   
+        Command* comm = list->comms[i];
         int pipeFD[2];
         bool pipeUsed = false;
-        Command* comm = list->comms[i];
 
         if ((i != list->count - 1) && (comm->redirectOut == -1))
         {
