@@ -14,4 +14,5 @@ all:
 	@$(CC) $(CFLAGS) $(INCLUDE) $(SRCS) -L$(GNL_DIR) $(GNL_LIB) $(RL_LIBS) -o $(NAME)
 
 fclean:
+	@make -C $(GNL_DIR) fclean --no-print-directory
 	@rm -rf $(NAME)
