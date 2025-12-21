@@ -18,13 +18,10 @@ void handle_echo(CommList* list, Command* comm, sConfig* conf)
     
     (void) list; (void) conf;
 
-    if (comm->argCount > 1) // First argument is the command itself.
+    if ((comm->argCount > 1) && (!strcmp(comm->args[1], "-n")))
     {
-        if (!strcmp(comm->args[1], "-n"))
-        {
-            noNewLine = true;
-            index++;
-        }
+        noNewLine = true;
+        index++;
     }
 
     for (; index < comm->argCount; index++)
