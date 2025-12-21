@@ -19,15 +19,18 @@ typedef enum TokType {
     T_RE_R,     // >
     T_RE_L,     // <
     T_RE_DR,    // >>
-    T_RE_DL,    // <<
+    T_HEREDOC,    // <<
     T_NULL
 } TokType;
 
 #define IS_COMMAND(type)    (((type) >= T_ECHO) && ((type) <= T_EXIT))
 #define IS_REDIRECT(type)   (((type) >= T_RE_R) && ((type) <= T_RE_DR))
-#define IS_HERE_DOC(type)   ((type) == T_RE_DR)
-#define IN_REDIRECT(type)   (((type) == T_RE_L)) // Temporarily leaving out <<.
+#define IN_REDIRECT(type)   (((type) == T_RE_L))
 #define OUT_REDIRECT(type)  (((type) == T_RE_R) || ((type) == T_RE_DR))
+// For here-documents.
+#define IS_DELIM(type) \
+    (((type) == T_WORD) || ((type) == T_STR) || IS_COMMAND(type))
+#define IS_SYMBOL(type) (((type) >= T_PIPE) && ((type) <= T_HEREDOC))
 
 typedef struct TokenObj {
     char**      tokStrs;

@@ -9,6 +9,7 @@ typedef struct comm {
     TokType commType;
     char*   name;
     char**  args;
+    char*   heredoc;
     int     argCount;
     int     argCapacity;
     int     redirectIn;

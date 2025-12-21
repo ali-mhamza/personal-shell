@@ -28,7 +28,7 @@ static void addRedirect(TokenObj* obj, char* line, size_t* index)
     {
         if ((*index != size - 1) && (line[*index + 1] == '<'))
         {
-            addToken(obj, &line[*index], 2, T_RE_DL);
+            addToken(obj, &line[*index], 2, T_HEREDOC);
             (*index)++;
         }
         else
@@ -49,34 +49,6 @@ static void addSingleString(TokenObj* obj, char* line, size_t* index)
     }
 
     addToken(obj, line, size, T_STR);
-}
-
-static char* expandInPlace(sConfig* conf, char* line, size_t *size)
-{
-    char* final = line;
-    char* temp;
-    while (((temp = strchr(final, '$')) != NULL)
-            && (temp < final + *size))
-    {
-        // Idea:
-        // Split quote around variable: [Welcome, ][$var1][, to this house.]
-        // Replace variable: [Welcome, ][Malcolm][, to this house.]
-        // Join back together: Welcome, Malcom, to this house.
-        
-        // We should probably add some kind of strReplace function
-        // to do this properly and independently.
-
-        size_t index = temp - final;
-        char* first = strndup(final, temp - final);
-        char* insert = expandEnv(conf, temp + 1, size, &index);
-        char* part = strjoin(first, insert);
-        final = strjoin(part, final + index);
-        free(first);
-        free(insert);
-        free(part);
-    }
-
-    return final;
 }
 
 // Temporarily: no expansion of $ variables.
@@ -169,7 +141,7 @@ TokenObj* getTokens(sConfig* conf, char* line)
                     setConfigExitCode(conf, GEN_ERROR);
                     reportError("Token Error", "Unrecognized token '%c'.", line[i]);
                     // Must free and return NULL here to signal an 
-                    // error in main().
+                    // error in execLine().
                     freeTokenObj(&obj);
                     return NULL;
                 }

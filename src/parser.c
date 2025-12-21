@@ -1,7 +1,11 @@
 #include "../include/parser.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/sighandle.h"
+#include "../include/strbuf.h"
 #include <fcntl.h>
+#include <readline/readline.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,6 +20,7 @@ static Command* initCommand()
         comm->commType = T_NULL;
         comm->name = NULL;
         comm->args = NULL;
+        comm->heredoc = NULL;
         comm->argCount = 0;
         comm->argCapacity = 0;
         comm->redirectIn = -1;
@@ -60,6 +65,7 @@ static void freeCommand(Command** comm)
     for (int i = 0; i < (*comm)->argCount; i++)
         free((*comm)->args[i]);
     free((*comm)->args);
+    free((*comm)->heredoc);
     free(*comm);
     *comm = NULL;
 }
@@ -111,6 +117,87 @@ static void addCommand(CommList* list, Command* comm)
             8 : list->capacity * 2);
 
     list->comms[list->count++] = comm; // We take ownership of the Command* object.
+}
+
+// Returns NULL on error.
+// Otherwise returns the heredoc body as
+// a heap-allocated string.
+static char* consumeHereDocBody(sConfig* conf, char* delim, bool quoteDelim)
+{
+    strbuf* buf = initBuf();
+    if (buf == NULL)
+        return NULL;
+    
+    while (true)
+    {
+        char* line = readline("> ");
+        char* stop;
+        if (gSignal == SIGINT)
+        {
+            freeBuf(&buf, FREE_CHARS);
+            rl_done = 0;
+            return NULL;
+        }
+        else if (line == NULL) // Assuming for simplicity this is not due to an error.
+        {
+            setConfigExitCode(conf, GEN_ERROR);
+            reportError("Input Error",
+                "Input to here document was not terminated.");
+            return NULL;
+        }
+        else if ((stop = strstr(line, delim)) != NULL)
+        {
+            appendBuf(buf, line, stop - line);
+            break;
+        }
+        else
+        {
+            appendBuf(buf, line, -1);
+            appendBuf(buf, "\n", -1);
+        }
+    }
+
+    size_t size = buf->count;
+    char* temp = freeBuf(&buf, NO_FREE_CHARS);
+    char* body = temp;
+    if (!quoteDelim)
+        body = expandInPlace(conf, temp, &size);
+    
+    if (body != temp)
+        free(temp);
+    return body;
+}
+
+// Start points to the position of the heredoc token.
+// Returns false on error; otherwise returns true.
+static bool parseHereDoc(sConfig* conf, Command* comm,
+    TokenObj* tokens, size_t* start)
+{
+    if (!IS_DELIM(tokens->tokTypes[*start + 1]))
+    {
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Syntax Error",
+            "Expect delimiter after heredoc ('<<') token.");
+        return false;
+    }
+    else if ((tokens->tokTypes[*start + 2] != T_NULL)
+            && !IS_SYMBOL(tokens->tokTypes[*start + 2]))
+    {
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Syntax Error",
+            "Delimiter can only be a single token.");
+        return false;
+    }
+
+    char* newHereDoc = consumeHereDocBody(conf, tokens->tokStrs[*start + 1],
+        (tokens->tokTypes[*start] == T_STR));
+    if (newHereDoc == NULL)
+        return false;
+
+    if (comm->heredoc != NULL)
+        free(comm->heredoc);
+    comm->heredoc = newHereDoc;
+    return true;
 }
 
 // Returns the associated file descriptor on success.
@@ -187,6 +274,11 @@ static bool parseNewCommand(sConfig* conf, CommList* list,
         else if (IS_REDIRECT(tokens->tokTypes[*start]))
         {
             if (parseRedirect(conf, comm, tokens, start) == -1)
+                return false;
+        }
+        else if (tokens->tokTypes[*start] == T_HEREDOC)
+        {
+            if (!parseHereDoc(conf, comm, tokens, start))
                 return false;
         }
         else
