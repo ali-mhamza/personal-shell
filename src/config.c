@@ -9,6 +9,7 @@ sConfig* initConfig(char** envp)
     if (conf != NULL)
     {
         conf->cwd = NULL;
+        conf->oldpwd = NULL;
         conf->exitCode = 0;
         conf->env = initEnvArray(envp); // Not set to NULL.
     }
@@ -27,6 +28,7 @@ void resetConfigCWD(sConfig* conf)
 void freeConfig(sConfig** conf)
 {
     free((*conf)->cwd);
+    free((*conf)->oldpwd);
     freeEnvArray(&((*conf)->env));
     free(*conf);
     *conf = NULL;

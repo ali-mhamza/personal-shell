@@ -44,20 +44,32 @@ void handle_cd(CommList* list, Command* comm, sConfig* conf)
         return;
     }
 
-    char* homePath = expandEnv(conf, "HOME", NULL, NULL);
-    int ret;
+    char* path;
     if (comm->argCount == 1)
-        ret = chdir(homePath);
-    else
+        path = expandEnv(conf, "HOME", NULL, NULL);
+    else if (strlen(comm->args[1]) == 1)
     {
-        if ((strlen(comm->args[1]) == 1)
-            && !strncmp(comm->args[1], "~", 1))
-                ret = chdir(homePath);
+        if (comm->args[1][0] == '~')
+            path = expandEnv(conf, "HOME", NULL, NULL);
+        else if (comm->args[1][0] == '-')
+        {
+            if (conf->oldpwd == NULL)
+            {
+                setConfigExitCode(conf, GEN_ERROR);
+                reportError("Directory Error", "No saved previous directory.");
+                return;
+            }
+            path = strdup(conf->oldpwd);
+        }
         else
-            ret = chdir(comm->args[1]);
+            path = strdup(comm->args[1]);
     }
-
-    free(homePath);
+    else
+        path = strdup(comm->args[1]);
+    
+    conf->oldpwd = strdup(conf->cwd);
+    int ret = chdir(path);
+    free(path);
 
     if (ret == -1)
     {

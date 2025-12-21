@@ -29,7 +29,7 @@ bool isWordChar(char c)
 {
     return (isalnum(c) || c == '.' || c == '/'
             || c == '_' || c == '-' || c == '$'
-            || c == '?' || c == '+');
+            || c == '?' || c == '+' || c == '~');
 }
 
 // - `start` points to *after* the $ sign.
@@ -64,4 +64,35 @@ char*   expandEnv(sConfig* conf, char* start, size_t* origSize, size_t* index)
     }
     free(temp);
     return ret;
+}
+
+char* expandInPlace(sConfig* conf, char* line, size_t *size)
+{
+    if (line == NULL)
+        return NULL;
+    
+    char* final = line;
+    char* temp;
+    while (((temp = strchr(final, '$')) != NULL)
+            && (temp < final + *size))
+    {
+        // Idea:
+        // Split quote around variable: [Welcome, ][$var1][, to this house.]
+        // Replace variable: [Welcome, ][Malcolm][, to this house.]
+        // Join back together: Welcome, Malcom, to this house.
+        
+        // We should probably add some kind of strReplace function
+        // to do this properly and independently.
+
+        size_t index = temp - final;
+        char* first = strndup(final, temp - final);
+        char* insert = expandEnv(conf, temp + 1, size, &index);
+        char* part = strjoin(first, insert);
+        final = strjoin(part, final + index);
+        free(first);
+        free(insert);
+        free(part);
+    }
+
+    return final;
 }
