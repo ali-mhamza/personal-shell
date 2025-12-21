@@ -94,12 +94,12 @@ static char* getExecFile(sConfig* conf, char* path)
 // our environment variable array.
 // Returns the array on complete success.
 // Otherwise returns NULL.
-static char** checkExecFile(sConfig* conf, char* command)
+static char** checkExecFile(sConfig* conf, char* command, char* file)
 {
     if (command == NULL)
     {
         setConfigExitCode(conf, NOT_FOUND);
-        reportError("Command Error", "Command '%s' not found.", command);
+        reportError("Command Error", "Command '%s' not found.", file);
         return NULL;
     }
     else if (access(command, X_OK) == -1)
@@ -124,7 +124,7 @@ static char** checkExecFile(sConfig* conf, char* command)
 void runExec(char* path, char** args, sConfig* conf)
 {
     char* command = getExecFile(conf, path);
-    char** tempEnvp = checkExecFile(conf, command);
+    char** tempEnvp = checkExecFile(conf, command, path);
     if (tempEnvp == NULL)
         return;
 

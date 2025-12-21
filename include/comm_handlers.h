@@ -2,16 +2,16 @@
 #define COMM_HANDLERS_H
 
 #include "config.h"
-#include "token.h"
+#include "parser.h"
 
-typedef void (*HandleFunc)(TokenObj* tokens, sConfig* conf);
+typedef void (*HandleFunc)(CommList* list, Command* comm, sConfig* conf);
 
-void handle_echo(TokenObj* tokens, sConfig* conf);
-void handle_cd(TokenObj* tokens, sConfig* conf);
-void handle_pwd(TokenObj* tokens, sConfig* conf);
-void handle_export(TokenObj* tokens, sConfig* conf);
-void handle_unset(TokenObj* tokens, sConfig* conf);
-void handle_env(TokenObj* tokens, sConfig* conf);
-void handle_exit(TokenObj* tokens, sConfig* conf);
+void handle_echo(CommList* list, Command* comm, sConfig* conf);
+void handle_cd(CommList* list, Command* comm, sConfig* conf);
+void handle_pwd(CommList* list, Command* comm, sConfig* conf);
+void handle_export(CommList* list, Command* comm, sConfig* conf);
+void handle_unset(CommList* list, Command* comm, sConfig* conf);
+void handle_env(CommList* list, Command* comm, sConfig* conf);
+void handle_exit(CommList* list, Command* comm, sConfig* conf);
 
 #endif

@@ -3,6 +3,7 @@
 #include "../include/config.h"
 #include "../include/env.h"
 #include "../include/error.h"
+#include "../include/parser.h"
 #include "../include/sighandle.h"
 #include <errno.h>
 #include <readline/readline.h>
@@ -10,110 +11,123 @@
 #include <stdio.h>
 #include <unistd.h>
 
-void handle_echo(TokenObj* tokens, sConfig* conf)
+void handle_echo(CommList* list, Command* comm, sConfig* conf)
 {
     bool noNewLine = false;
-    size_t index = 1;
+    int index = 1;
     
-    (void) conf;
+    (void) list; (void) conf;
 
-    if (tokens->tokTypes[index] == T_OPTION)
+    if (comm->argCount > 1) // First argument is the command itself.
     {
-        if (!strcmp(tokens->tokStrs[index], "-n"))
+        if (!strcmp(comm->args[1], "-n"))
+        {
             noNewLine = true;
-        index++;
+            index++;
+        }
     }
 
-    for (; index < tokens->count; index++)
+    for (; index < comm->argCount; index++)
     {
-        printf("%s%s", tokens->tokStrs[index],
-            (index == tokens->count - 1 ? "" : " "));
+        printf("%s%s", comm->args[index],
+            (index == comm->argCount - 1 ? "" : " "));
     }
     printf("%s", noNewLine ? "" : "\n");
 }
 
-void handle_cd(TokenObj* tokens, sConfig* conf)
+void handle_cd(CommList* list, Command* comm, sConfig* conf)
 {
-    if (tokens->count > 2)
+    (void) list;
+    
+    if (comm->argCount > 2)
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Command Error", "Too many arguments for command '%s'.",
-            tokens->tokStrs[0]);
+            comm->name);
         return;
     }
 
     char* homePath = expandEnv(conf, "HOME", NULL, NULL);
     int ret;
-    if (tokens->count == 1)
+    if (comm->argCount == 1)
         ret = chdir(homePath);
     else
     {
-        if ((strlen(tokens->tokStrs[1]) == 1)
-            && !strncmp(tokens->tokStrs[1], "~", 1))
+        if ((strlen(comm->args[1]) == 1)
+            && !strncmp(comm->args[1], "~", 1))
                 ret = chdir(homePath);
         else
-            ret = chdir(tokens->tokStrs[1]);
+            ret = chdir(comm->args[1]);
     }
+
+    free(homePath);
+
     if (ret == -1)
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Argument Error", "%s.", strerror(errno));
-        return;
     }
-
-    free(homePath);
-    resetConfigCWD(conf);
+    else
+        resetConfigCWD(conf);
 }
 
-void handle_pwd(TokenObj* tokens, sConfig* conf)
+void handle_pwd(CommList* list, Command* comm, sConfig* conf)
 {
-    if (tokens->count > 1)
+    (void) list;
+    
+    if (comm->argCount > 1)
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Command Error", "Too many arguments for command '%s'.",
-            tokens->tokStrs[0]);
+            comm->name);
         return;
     }
 
     printf("%s\n", conf->cwd);
 }
 
-void handle_export(TokenObj* tokens, sConfig* conf)
+void handle_export(CommList* list, Command* comm, sConfig* conf)
 {
-    for (size_t i = 1; i < tokens->count; i++)
+    (void) list;
+    
+    for (int i = 1; i < comm->argCount; i++)
     {
-        if ((i != tokens->count - 1) && (tokens->tokTypes[i + 1] == T_EQUAL))
+        if ((i != comm->argCount - 1) && (!strcmp(comm->args[i + 1], "=")))
         {
             // Bash exports until it hits an error.
             // It doesn't do complete verification first.
-            if (!isValidVar(tokens->tokStrs[i]))
+            if (!isValidVar(comm->args[i]))
             {
                 setConfigExitCode(conf, GEN_ERROR);
                 reportError("Argument Error", "Token '%s' is not a valid identifier.",
-                    tokens->tokStrs[i]);
+                    comm->args[i]);
                 return;
             }
-            setEnvVar(conf->env, tokens->tokStrs[i], tokens->tokStrs[i + 2]);
+            setEnvVar(conf->env, comm->args[i], comm->args[i + 2]);
             i += 2;
         }
         else
-            setEnvVar(conf->env, tokens->tokStrs[i], NULL);
+            setEnvVar(conf->env, comm->args[i], NULL);
     }
 }
 
-void handle_unset(TokenObj* tokens, sConfig* conf)
+void handle_unset(CommList* list, Command* comm, sConfig* conf)
 {
-    for (size_t i = 1; i < tokens->count; i++)
-        removeEnvVar(conf->env, tokens->tokStrs[i]);
+    (void) list;
+    
+    for (int i = 1; i < comm->argCount; i++)
+        removeEnvVar(conf->env, comm->args[i]);
 }
 
-void handle_env(TokenObj* tokens, sConfig* conf)
+void handle_env(CommList* list, Command* comm, sConfig* conf)
 {
-    if (tokens->count > 1)
+    (void) list;
+    
+    if (comm->argCount > 1)
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Command Error", "Too many arguments for command '%s'.",
-            tokens->tokStrs[0]);
+            comm->name);
         return;
     }
     
@@ -157,32 +171,32 @@ static bool isValidNumber(const char* numStr)
     return true;
 }
 
-void handle_exit(TokenObj* tokens, sConfig* conf)
+void handle_exit(CommList* list, Command* comm, sConfig* conf)
 {
     resetTerminal();
     freeConfig(&conf);
     rl_clear_history();
-    if (tokens->count == 1)
+    if (comm->argCount == 1)
     {
-        freeTokenObj(&tokens);
+        freeCommList(&list);
         exit(0);
     }
-    else if (tokens->count > 1)
+    else if (comm->argCount > 1)
     {
         unsigned char exitCode = 0;
         // Check if it's a number.
-        if (!isValidNumber(tokens->tokStrs[1]))
+        if (!isValidNumber(comm->args[1]))
             exitCode = INVALID_EXIT;
 
         if (exitCode == 0)
         {
-            int code = atoi(tokens->tokStrs[1]);
+            int code = atoi(comm->args[1]);
             if ((code < 0) || (code > 255))
                 exitCode = EXIT_RANGE;
             else
                 exitCode = (unsigned char) code;
         }
-        freeTokenObj(&tokens);
+        freeCommList(&list);
         exit(exitCode);
     }
 }
