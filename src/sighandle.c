@@ -1,4 +1,5 @@
 #include "../include/sighandle.h"
+#include "../include/common.h"
 #include <readline/readline.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -11,9 +12,18 @@ void handleSigInt(int sig)
     {
         gSignal = sig;
 
-        rl_replace_line("^C", 0);
+        char* temp = strjoin(rl_line_buffer, "^C");
+        rl_replace_line(temp, 0);
+        free(temp);
         rl_redisplay();
         write(1, "\n", 1);
+
+        if (!strcmp(rl_prompt, "> "))
+        {
+            rl_done = 1;
+            return;
+        }
+
         rl_on_new_line();
         rl_replace_line("", 0);
         rl_redisplay();
