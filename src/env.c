@@ -73,6 +73,22 @@ static void reallocEnvArray(envArray* arr, size_t newSize)
 
 void setEnvVar(envArray* arr, char* varName, char* varValue)
 {
+    // Check if we already have it.
+    
+    for (size_t i = 0; i < arr->count; i++)
+    {
+        if (arr->envVars[i] == NULL)
+            continue;
+        else if (!strcmp(varName, arr->envVars[i]))
+        {
+            free(arr->envValues[i]);
+            arr->envValues[i] = strdup(varValue);
+            return;
+        }
+    }
+    
+    // We don't, so we have to add it.
+
     if (arr->capacity < arr->count + 1)
         reallocEnvArray(arr, arr->capacity == 0 ? 8 : arr->capacity * 2);
     
