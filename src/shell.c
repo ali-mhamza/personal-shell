@@ -26,7 +26,7 @@ static char* makePrompt(sConfig* conf)
     appendBuf(buf, "myshell:", -1);
     if (conf->cwd == NULL)
         resetConfigCWD(conf);
-    appendBuf(buf, conf->cwd, -1); // Error occurs here.
+    appendBuf(buf, conf->cwd, -1);
     appendBuf(buf, "# ", -1);
     return freeBuf(&buf, NO_FREE_CHARS);
 }
