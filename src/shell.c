@@ -51,18 +51,6 @@ static void runCommand(CommList* list, Command* comm, sConfig* conf)
     // error.
 }
 
-// Note: a redirect overrides a pipe.
-// E.g., echo "test" > output.txt | cat
-// will put "test" in output.txt and pipe
-// nothing to cat.
-// Thus, we should probably do any necessary piping
-// first, so it can be overriden by a redirect if needed.
-
-// Redirects (per command basis):
-// 1. Save the stdin and stdout file descriptors.
-// 2. Duplicate both to the stored FDs in the command object.
-// 3. After running the command, duplicate back to the original FDs.
-
 static void setUpFDs(Command* comm, int inputFD, int pipeFD[], bool pipeUsed)
 {
     // Set up input file descriptor.
