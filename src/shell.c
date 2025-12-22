@@ -95,6 +95,8 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
     int stdinFD = dup(STDIN_FILENO);
     int stdoutFD = dup(STDOUT_FILENO);
 
+    // Set up heredocs and redirects (if any).
+
     int heredocFD[2];
     if (comm->heredoc != NULL)
     {
@@ -108,6 +110,8 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
         dup2(comm->redirectOut, STDOUT_FILENO);
 
     runCommand(list, comm, conf);
+
+    // Close any used pipes or redirect files.
 
     if (comm->heredoc != NULL)
     {
@@ -149,6 +153,8 @@ static void setUpCommands(CommList* list, sConfig* conf)
         int heredocFD[2];
         bool pipeUsed = false;
 
+        // Set up pipelines for piping or heredocs.
+
         if (comm->heredoc != NULL)
             pipe(heredocFD);
         if ((i != list->count - 1) && (comm->redirectOut == -1))
@@ -172,8 +178,10 @@ static void setUpCommands(CommList* list, sConfig* conf)
 
             exit(0); // Temporarily.
 		}
-        else
+        else // Parent process logic.
         {
+            // Close open pipes and files.
+            
             if (comm->redirectIn != -1)
                 close(comm->redirectIn);
             if (comm->redirectOut != -1)
@@ -192,6 +200,7 @@ static void setUpCommands(CommList* list, sConfig* conf)
             if ((inputFD != STDIN_FILENO) && (inputFD != comm->redirectIn))
                 close(inputFD);
 
+            // Reassign inputFD for next command's read.
             inputFD = (pipeUsed ? pipeFD[0] : STDIN_FILENO);
         }
     }
