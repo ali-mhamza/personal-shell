@@ -51,11 +51,18 @@ static void runCommand(CommList* list, Command* comm, sConfig* conf)
     // error.
 }
 
-static void setUpFDs(Command* comm, int inputFD, int pipeFD[], bool pipeUsed)
-{
+static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
+    int heredocFD[], bool pipeUsed)
+{   
     // Set up input file descriptor.
-    
-    int finalIn = (comm->redirectIn != -1 ? comm->redirectIn : inputFD);
+
+    int finalIn;
+    if (comm->heredoc != NULL)
+        finalIn = heredocFD[0];
+    else if (comm->redirectIn != -1)
+        finalIn = comm->redirectIn;
+    else
+        finalIn = inputFD;
 
     if (finalIn != STDIN_FILENO)
         dup2(finalIn, STDIN_FILENO);
@@ -77,6 +84,8 @@ static void setUpFDs(Command* comm, int inputFD, int pipeFD[], bool pipeUsed)
 
     if (pipeUsed)
         close(pipeFD[0]);
+    if (comm->heredoc != NULL)
+        close(heredocFD[1]);
     if ((inputFD != STDIN_FILENO) && (inputFD != finalIn))
         close(inputFD);
 }
@@ -86,14 +95,27 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
     int stdinFD = dup(STDIN_FILENO);
     int stdoutFD = dup(STDOUT_FILENO);
 
-    if (comm->redirectIn != -1)
+    int heredocFD[2];
+    if (comm->heredoc != NULL)
+    {
+        pipe(heredocFD);
+        dup2(heredocFD[0], STDIN_FILENO);
+        write(heredocFD[1], comm->heredoc, strlen(comm->heredoc));
+    }
+    else if (comm->redirectIn != -1)
         dup2(comm->redirectIn, STDIN_FILENO);
     if (comm->redirectOut != -1)
         dup2(comm->redirectOut, STDOUT_FILENO);
 
     runCommand(list, comm, conf);
 
-    if (comm->redirectIn != -1)
+    if (comm->heredoc != NULL)
+    {
+        close(heredocFD[1]);
+        dup2(stdinFD, STDIN_FILENO);
+        close(heredocFD[0]);
+    }
+    else if (comm->redirectIn != -1)
     {
         dup2(stdinFD, STDIN_FILENO);
         close(comm->redirectIn);
@@ -124,8 +146,11 @@ static void setUpCommands(CommList* list, sConfig* conf)
     {   
         Command* comm = list->comms[i];
         int pipeFD[2];
+        int heredocFD[2];
         bool pipeUsed = false;
 
+        if (comm->heredoc != NULL)
+            pipe(heredocFD);
         if ((i != list->count - 1) && (comm->redirectOut == -1))
         {
             pipe(pipeFD);
@@ -137,7 +162,7 @@ static void setUpCommands(CommList* list, sConfig* conf)
 
 		if (id == 0) // Child process logic.
 		{
-			setUpFDs(comm, inputFD, pipeFD, pipeUsed);
+			setUpFDs(comm, inputFD, pipeFD, heredocFD, pipeUsed);
             runCommand(list, comm, conf);
 
             if (comm->redirectIn != -1)
@@ -149,10 +174,24 @@ static void setUpCommands(CommList* list, sConfig* conf)
 		}
         else
         {
+            if (comm->redirectIn != -1)
+                close(comm->redirectIn);
+            if (comm->redirectOut != -1)
+                close(comm->redirectOut);
+            
             if (pipeUsed)
                 close(pipeFD[1]);
+
+            if (comm->heredoc != NULL)
+            {
+                close(heredocFD[0]);
+                write(heredocFD[1], comm->heredoc, strlen(comm->heredoc));
+                close(heredocFD[1]);
+            }
+
             if ((inputFD != STDIN_FILENO) && (inputFD != comm->redirectIn))
                 close(inputFD);
+
             inputFD = (pipeUsed ? pipeFD[0] : STDIN_FILENO);
         }
     }
