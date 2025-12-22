@@ -121,6 +121,20 @@ static void addCommand(CommList* list, Command* comm)
     list->comms[list->count++] = comm; // We take ownership of the Command* object.
 }
 
+static void reopenStdin()
+{
+    const char* ttyPath = ttyname(0);
+    if (ttyPath == NULL)
+        ttyPath = "/dev/tty";
+    int tempFD = open(ttyPath, O_RDONLY); // Assuming this doesn't fail...
+    dup2(tempFD, 0);
+    if (tempFD != 0)
+    {
+        dup2(tempFD, 0);
+        close(tempFD);
+    }
+}
+
 // Returns NULL on error.
 // Otherwise returns the heredoc body as
 // a heap-allocated string.
@@ -139,6 +153,7 @@ static char* consumeHereDocBody(sConfig* conf, char* delim, bool quoteDelim)
         {
             freeBuf(&buf, FREE_CHARS);
             free(line);
+            reopenStdin();
             return NULL;
         }
         

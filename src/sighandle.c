@@ -12,7 +12,8 @@ void handleSigInt(int sig)
     if (gSignal == SIG_ATOMIC_MIN)
     {
         gSignal = sig;
-        write(1, "^C", 2);
+        write(1, "^C\n", 3);
+        close(0);
         return;
     }
     
