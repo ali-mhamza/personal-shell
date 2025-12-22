@@ -202,6 +202,7 @@ static bool parseHereDoc(sConfig* conf, Command* comm,
         (tokens->tokTypes[*start] == T_STR));
     if (newHereDoc == NULL)
         return false;
+    (*start) += 1;
 
     if (comm->heredoc != NULL)
         free(comm->heredoc);
