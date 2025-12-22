@@ -198,11 +198,11 @@ static bool parseHereDoc(sConfig* conf, Command* comm,
         return false;
     }
 
-    char* newHereDoc = consumeHereDocBody(conf, tokens->tokStrs[*start + 1],
-        (tokens->tokTypes[*start + 1] == T_STR));
+    (*start)++; // Another +1 will happen in the parser loop.
+    char* newHereDoc = consumeHereDocBody(conf, tokens->tokStrs[*start],
+        (tokens->tokTypes[*start] == T_STR));
     if (newHereDoc == NULL)
         return false;
-    (*start) += 1; // Another +1 will happen in the parser loop.
 
     if (comm->heredoc != NULL)
         free(comm->heredoc);
