@@ -61,7 +61,7 @@ static void addCommandArg(Command* comm, char* arg)
 
 static void freeCommand(Command** comm)
 {
-    if (comm == NULL)
+    if (!comm || !(*comm))
         return;
     free((*comm)->name);
     for (int i = 0; i < (*comm)->argCount; i++)
@@ -89,7 +89,7 @@ static CommList* initCommList()
 
 void freeCommList(CommList** list)
 {
-    if (list == NULL)
+    if (!list || !(*list))
         return;
     for (size_t i = 0; i < (*list)->count; i++)
         freeCommand(&((*list)->comms[i]));

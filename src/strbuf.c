@@ -47,16 +47,14 @@ void appendBuf(strbuf *buf, const char *str, size_t size)
 
 char* freeBuf(strbuf **buf, int freeChars)
 {
-	if (!buf)
+	if (!buf || !(*buf))
 		return (NULL);
+
 	char* temp = NULL;
-	if (*buf)
-	{
-		if (freeChars)
-			free((*buf)->chars);
-		else
-			temp = (*buf)->chars;
-	}
+	if (freeChars)
+		free((*buf)->chars);
+	else
+		temp = (*buf)->chars;
 	free(*buf);
 	*buf = NULL;
 	return temp;

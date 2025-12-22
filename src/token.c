@@ -19,6 +19,9 @@ TokenObj* initTokenObj()
 
 void freeTokenObj(TokenObj** obj)
 {
+    if (!obj || !(*obj))
+        return;
+    
     for (size_t i = 0; i < (*obj)->count; i++)
         free((*obj)->tokStrs[i]);
     free((*obj)->tokStrs);

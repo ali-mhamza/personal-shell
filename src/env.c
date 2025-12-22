@@ -142,6 +142,9 @@ char** formExecEnv(envArray* arr)
 
 void freeEnvArray(envArray** arr)
 {
+    if (!arr || !(*arr))
+        return;
+    
     for (size_t i = 0; i < (*arr)->count; i++)
     {
         free((*arr)->envVars[i]);

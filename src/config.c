@@ -27,6 +27,9 @@ void resetConfigCWD(sConfig* conf)
 
 void freeConfig(sConfig** conf)
 {
+    if (!conf || !(*conf))
+        return;
+    
     free((*conf)->cwd);
     free((*conf)->oldpwd);
     freeEnvArray(&((*conf)->env));
