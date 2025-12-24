@@ -136,6 +136,8 @@ TokenObj* getTokens(sConfig* conf, char* line)
             {
                 if (isWordChar(line[i]))
                     addWordToken(conf, obj, &line[i], &i);
+                else if (line[i] == '\0')
+                    break;
                 else
                 {
                     setConfigExitCode(conf, GEN_ERROR);
