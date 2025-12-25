@@ -46,11 +46,11 @@ void handle_cd(CommList* list, Command* comm, sConfig* conf)
 
     char* path;
     if (comm->argCount == 1)
-        path = expandEnv(conf, "HOME", NULL, NULL);
+        path = strdup(conf->homedir);
     else if (strlen(comm->args[1]) == 1)
     {
         if (comm->args[1][0] == '~')
-            path = expandEnv(conf, "HOME", NULL, NULL);
+            path = strdup(conf->homedir);
         else if (comm->args[1][0] == '-')
         {
             if (conf->oldpwd == NULL)
@@ -82,16 +82,7 @@ void handle_cd(CommList* list, Command* comm, sConfig* conf)
 
 void handle_pwd(CommList* list, Command* comm, sConfig* conf)
 {
-    (void) list;
-    
-    if (comm->argCount > 1)
-    {
-        setConfigExitCode(conf, GEN_ERROR);
-        reportError("Command Error", "Too many arguments for command '%s'.",
-            comm->name);
-        return;
-    }
-
+    (void) list; (void) comm;
     printf("%s\n", conf->cwd);
 }
 
@@ -101,17 +92,17 @@ void handle_export(CommList* list, Command* comm, sConfig* conf)
     
     for (int i = 1; i < comm->argCount; i++)
     {
+        // Bash exports until it hits an error.
+        // It doesn't do complete verification first.
+        if (!isValidVar(comm->args[i]))
+        {
+            setConfigExitCode(conf, GEN_ERROR);
+            reportError("Argument Error", "Token '%s' is not a valid identifier.",
+                comm->args[i]);
+            return;
+        }
         if ((i != comm->argCount - 1) && (!strcmp(comm->args[i + 1], "=")))
         {
-            // Bash exports until it hits an error.
-            // It doesn't do complete verification first.
-            if (!isValidVar(comm->args[i]))
-            {
-                setConfigExitCode(conf, GEN_ERROR);
-                reportError("Argument Error", "Token '%s' is not a valid identifier.",
-                    comm->args[i]);
-                return;
-            }
             setEnvVar(conf->env, comm->args[i], comm->args[i + 2]);
             i += 2;
         }
