@@ -1,7 +1,7 @@
 #include "../include/common.h"
 #include <stdlib.h>
 
-static bool isVarChar(char c)
+bool isVarChar(char c)
 {
     return (isalpha(c) || (c == '_'));
 }
