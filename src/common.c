@@ -29,7 +29,8 @@ bool isWordChar(char c)
 {
     return (isalnum(c) || c == '.' || c == '/'
             || c == '_' || c == '-' || c == '$'
-            || c == '?' || c == '+' || c == '~');
+            || c == '?' || c == '+' || c == '~'
+            || c == '^' || c == '\'' || c == '"');
 }
 
 // - `start` points to *after* the $ sign.
@@ -48,14 +49,17 @@ char*   expandEnv(sConfig* conf, char* start, size_t* origSize, size_t* index)
         return temp;
     }
     
-    size_t size = 0;
-    if (!isalnum(start[size]))
+    if (!isalnum(start[0]))
     {
         (*index)++;
         return strdup("$");
     }
+
+    size_t size = 0;
     while (isWordChar(start[size]) && (start[size] != '$'))
         size++;
+    if ((start[size - 1] == '"') || (start[size - 1] == '\''))
+        size--;
     char* temp = strndup(start, size);
     char* ret = getEnvVar(conf->env, temp);
     if (index != NULL)
@@ -95,11 +99,52 @@ char* expandInPlace(sConfig* conf, char* line, size_t *size)
         char* insert = expandEnv(conf, temp + 1, size, &index);
         char* part = strjoin(first, insert);
         final = strjoin(part, final + index);
-        start += index;
+        start = final + index;
         free(first);
         free(insert);
         free(part);
     }
 
+    if (final == line)
+        final = strdup(line);
+
+    return final;
+}
+
+char* removeQuotes(char* input, size_t* size)
+{
+    char* temp;
+    char* final = input;
+
+    // Single quotes first.
+    while (((temp = strchr(final, '\'')) != NULL)
+            && (temp < final + *size))
+    {
+        char* first = strndup(final, temp - final);
+        char* second = strdup(temp + 1);
+        if (final != input)
+            free(final);
+        final = strjoin(first, second);
+        free(first);
+        free(second);
+        (*size)--;
+    }
+
+    while (((temp = strchr(final, '"')) != NULL)
+            && (temp < final + *size))
+    {
+        char* first = strndup(final, temp - final);
+        char* second = strdup(temp + 1);
+        if (final != input)
+            free(final);
+        final = strjoin(first, second);
+        free(first);
+        free(second);
+        (*size)--;
+    }
+
+    if (final == input)
+        final = strdup(input);
+    
     return final;
 }
