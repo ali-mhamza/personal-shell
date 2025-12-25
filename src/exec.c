@@ -102,7 +102,11 @@ static char** checkExecFile(sConfig* conf, char* command, char* file)
         reportError("Command Error", "Command '%s' not found.", file);
         return NULL;
     }
-    else if (access(command, X_OK) == -1)
+
+    struct stat statInfo;
+    stat(command, &statInfo);
+
+    if ((access(command, X_OK) == -1) || (!S_ISREG(statInfo.st_mode)))
     {
         setConfigExitCode(conf, NOT_EXEC);
         reportError("Command Error",
@@ -123,6 +127,10 @@ static char** checkExecFile(sConfig* conf, char* command, char* file)
 
 void runExec(char* path, char** args, sConfig* conf)
 {
+    // Safety guard.
+    if ((path == NULL) || path[0] == '\0')
+        return;
+    
     char* command = getExecFile(conf, path);
     char** tempEnvp = checkExecFile(conf, command, path);
     if (tempEnvp == NULL)
