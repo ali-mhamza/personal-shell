@@ -37,69 +37,134 @@ static void addRedirect(TokenObj* obj, char* line, size_t* index)
     (*index)++;
 }
 
-static void addSingleString(TokenObj* obj, char* line, size_t* index)
+static inline bool isDelim(char c)
 {
-    size_t size = 0;
-    while (line[size] != '\0')
-    {
-        (*index)++;
-        if (line[size] == '\'')
-            break;
-        size++;
-    }
-
-    addToken(obj, line, size, T_STR);
+    return (isspace(c) || (c == '=') || (c == '|')
+            || (c == '>') || (c == '<') || (c == '\0'));
 }
 
-static void addDoubleString(sConfig* conf, TokenObj* obj, char* line, size_t* index)
-{
-    size_t size = 0;
-    while (line[size] != '\0')
-    {
-        (*index)++;
-        if (line[size] == '"')
-            break;
-        size++;
-    }
-
-    char* final = expandInPlace(conf, line, &size);
-    addToken(obj, final, size, T_STR);
-    if (final != line) // TokenObj does not own the string.
-        free(final);
-}
-
-static void addWordToken(sConfig* conf, TokenObj* obj, char* line, size_t* index)
+static int getWordType(char* str, size_t size)
 {
     const char* commands[] = {
         "echo", "cd", "pwd", "export",
         "unset", "env", "exit", NULL
     };
 
-    size_t size = 0;
-    while (isWordChar(line[size]))
-    {
-        (*index)++;
-        size++;
-    }
-
-    char* temp = expandInPlace(conf, line, &size);
-    char* final = removeQuotes(temp, &size);
-    free(temp);
-
     for (int i = 0; commands[i] != NULL; i++)
     {
         if (strlen(commands[i]) != size)
             continue;
-        if (!strncmp(final, commands[i], size))
+        else if (!strncmp(commands[i], str, size))
         {
-            addToken(obj, final, size, (TokType) i);
-            free(final);
-            return;
+            return i;
         }
     }
 
-    addToken(obj, final, size, T_WORD);
-    free(final);
+    return -1;
+}
+
+static char* consumeSingleString(char* start)
+{
+    size_t count = 0;
+    while ((start[count] != '\'') && (start[count] != '\0'))
+        count++;
+    return strndup(start, count);
+}
+
+static char* consumeDoubleString(sConfig* conf, char* start, size_t* size)
+{
+    size_t count = 0;
+    while ((start[count] != '"') && (start[count] != '\0'))
+        count++;
+    char* temp = strndup(start, count);
+    if (size != NULL)
+        (*size) = count;
+    char* final = expandInPlace(conf, temp, &count);
+    free(temp);
+    return final;
+}
+
+static char* expandVar(sConfig* conf, char* start, size_t* size)
+{
+    if ((start[0] != '\0') && (start[0] == '?'))
+    {
+        if (size != NULL)
+            (*size) = 1;
+        return itoa(conf->exitCode);
+    }
+    else if (!isVarChar(start[0]))
+    {
+        if (size != NULL)
+            (*size) = 0;
+        return strdup("$");
+    }
+    
+    size_t count = 0;
+    while (!isDelim(start[count]) && (start[count] != '$'))
+        count++;
+
+    if (size != NULL)
+        (*size) = count;
+
+    char* temp = strndup(start, count);
+    char* ret = getEnvVar(conf->env, temp);
+    free(temp);
+    if (ret != NULL)
+        return ret;
+    else
+        return strdup("");
+}
+
+#include "../include/strbuf.h"
+static void addWordToken(sConfig* conf, TokenObj* obj,
+    char* start, size_t* index)
+{
+    strbuf* buf = initBuf();
+    if (buf == NULL)
+        return;
+
+    size_t i;
+    for (i = 0; !isDelim(start[i]);)
+    {
+        if (start[i] == '\'')
+        {
+            i++;
+            char* temp = consumeSingleString(&start[i]);
+            appendBuf(buf, temp, -1);
+            i += strlen(temp) + 1;
+            free(temp);
+        }
+        else if (start[i] == '"')
+        {
+            i++;
+            size_t size = 0;
+            char* temp = consumeDoubleString(conf, &start[i], &size);
+            appendBuf(buf, temp, -1);
+            i += size + 1;
+            free(temp);
+        }
+        else if (start[i] == '$')
+        {
+            i++;
+            size_t size = 0;
+            char* temp = expandVar(conf, &start[i], &size);
+            appendBuf(buf, temp, -1);
+            i += size;
+            free(temp);
+        }
+        else
+        {
+            appendBuf(buf, &start[i], 1);
+            i++;
+        }
+    }
+
+    size_t size = buf->count;
+    char* tokStr = freeBuf(&buf, NO_FREE_CHARS);
+    int type = getWordType(tokStr, size);
+    addToken(obj, tokStr, size, type == -1 ? T_WORD : (TokType) type);
+    (*index) += i;
+    free(tokStr);
 }
 
 TokenObj* getTokens(sConfig* conf, char* line)
@@ -118,11 +183,10 @@ TokenObj* getTokens(sConfig* conf, char* line)
             case '<':   addRedirect(obj, line, &i);                 break;
             case '|':   addToken(obj, &line[i++], 1, T_PIPE);       break;
             case '=':   addToken(obj, &line[i++], 1, T_EQUAL);      break;
-            case '\'':  addSingleString(obj, &line[++i], &i);       break;
-            case '"':   addDoubleString(conf, obj, &line[++i], &i); break;
             case '-':
             {
-                if (isalpha(line[i + 1]))
+                if (isalpha(line[i + 1]) && (i + 2 < size)
+                    && isspace(line[i + 2]))
                 {
                     addToken(obj, &line[i], 2, T_OPTION);
                     i += 2;
