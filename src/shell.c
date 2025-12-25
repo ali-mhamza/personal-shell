@@ -16,6 +16,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "../get_next_line/get_next_line.h"
+
 volatile sig_atomic_t gSignal = 0;
 
 static char* makePrompt(sConfig* conf)
@@ -45,7 +47,7 @@ static void runCommand(CommList* list, Command* comm, sConfig* conf)
 
         (*handlers[(int) comm->commType])(list, comm, conf);
     }
-    else if (comm->commType == T_WORD)
+    else if ((comm->commType == T_WORD) || (comm->commType == T_STR))
         runExec(comm->name, comm->args, conf);
     // No other option since the parser would have raised an
     // error.
@@ -133,6 +135,9 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
 
 static void setUpCommands(CommList* list, sConfig* conf)
 {
+    if (list->count == 0) // Empty input got through.
+        return;
+    
     if (list->count == 1) // No pipes.
     {
         Command* comm = list->comms[0];
@@ -176,7 +181,7 @@ static void setUpCommands(CommList* list, sConfig* conf)
             if (comm->redirectOut != -1)
                 close(comm->redirectOut);
 
-            exit(0); // Temporarily.
+            exit(conf->exitCode); // Temporarily.
 		}
         else // Parent process logic.
         {
@@ -231,18 +236,21 @@ static void checkEOF(sConfig* conf, char* line)
 {
     if (line == NULL)
     {
-        if ((errno == 0) && isatty(STDIN_FILENO)) // Hit EOF, not an error.
+        if (errno == 0) // Hit EOF, not an error.
         {
             freeConfig(&conf);
             resetTerminal();
             rl_clear_history();
             exit(0);
         }
-        else
+        else if (isatty(STDIN_FILENO))
         {
             setConfigExitCode(conf, GEN_ERROR);
             reportError("Internal Error", "Failed to read input.");
+            exit(EXIT_FAILURE);
         }
+        else // Finished executing piped input.
+            exit(EXIT_SUCCESS);
     }
 }
 
@@ -252,7 +260,8 @@ static void execLine(sConfig* conf, char* line)
 
     if ((line != NULL) && (line[0] != '\0'))
     {
-        add_history(line);
+        if (isatty(STDIN_FILENO))
+            add_history(line);
         TokenObj* tokens = getTokens(conf, line);
         if (tokens != NULL)
         {
@@ -297,7 +306,18 @@ int main(int argc, char* argv[], char* envp[])
             exit(EXIT_FAILURE); // Fatal.
         }
 
-        char* line = readline(prompt);
+        rl_variable_bind("enable-bracketed-paste", "off");
+
+        char* line;
+        if (isatty(STDIN_FILENO)/* && isatty(STDOUT_FILENO)*/)
+            line = readline(prompt);
+        else
+        {
+            line = get_next_line(STDIN_FILENO);
+            size_t len = (line != NULL ? strlen(line) : 0);
+            if ((len > 0) && (line[len - 1] == '\n'))
+                line[len - 1] = '\0';
+        }
         free(prompt);
 
         if (gSignal == SIGINT)
