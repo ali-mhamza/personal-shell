@@ -49,6 +49,11 @@ char*   expandEnv(sConfig* conf, char* start, size_t* origSize, size_t* index)
     }
     
     size_t size = 0;
+    if (!isalnum(start[size]))
+    {
+        (*index)++;
+        return strdup("$");
+    }
     while (isWordChar(start[size]) && (start[size] != '$'))
         size++;
     char* temp = strndup(start, size);
@@ -72,8 +77,9 @@ char* expandInPlace(sConfig* conf, char* line, size_t *size)
         return NULL;
     
     char* final = line;
+    char* start = final;
     char* temp;
-    while (((temp = strchr(final, '$')) != NULL)
+    while (((temp = strchr(start, '$')) != NULL)
             && (temp < final + *size))
     {
         // Idea:
@@ -89,6 +95,7 @@ char* expandInPlace(sConfig* conf, char* line, size_t *size)
         char* insert = expandEnv(conf, temp + 1, size, &index);
         char* part = strjoin(first, insert);
         final = strjoin(part, final + index);
+        start += index;
         free(first);
         free(insert);
         free(part);
