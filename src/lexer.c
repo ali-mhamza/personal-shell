@@ -51,7 +51,6 @@ static void addSingleString(TokenObj* obj, char* line, size_t* index)
     addToken(obj, line, size, T_STR);
 }
 
-// Temporarily: no expansion of $ variables.
 static void addDoubleString(sConfig* conf, TokenObj* obj, char* line, size_t* index)
 {
     size_t size = 0;
