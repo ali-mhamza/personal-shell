@@ -20,6 +20,7 @@ static Command* initCommand()
     if (comm != NULL)
     {
         comm->commType = T_NULL;
+        comm->failed = false;
         comm->name = NULL;
         comm->args = NULL;
         comm->heredoc = NULL;
@@ -239,6 +240,9 @@ static int parseRedirect(sConfig* conf, Command* comm,
         return -1;
     }
 
+    if (comm->failed) // We don't process any further redirects.
+        return -1;
+
     const char* path = tokens->tokStrs[(*start)];
     int flags;
     if (redirect == T_RE_R)
@@ -298,7 +302,7 @@ static bool parseNewCommand(sConfig* conf, CommList* list,
         else if (IS_REDIRECT(tokens->tokTypes[*start]))
         {
             if (parseRedirect(conf, comm, tokens, start) == -1)
-                return false;
+                comm->failed = true;
         }
         else if (tokens->tokTypes[*start] == T_HEREDOC)
         {

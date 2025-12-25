@@ -3,10 +3,12 @@
 
 #include "config.h"
 #include "token.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct comm {
     TokType commType;
+    bool    failed;     // Success or failure. If true (failure), the command is silently skipped during execution.
     char*   name;
     char**  args;
     char*   heredoc;
