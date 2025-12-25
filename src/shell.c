@@ -141,6 +141,11 @@ static void setUpCommands(CommList* list, sConfig* conf)
     if (list->count == 1) // No pipes.
     {
         Command* comm = list->comms[0];
+        if (comm->failed)
+        {
+            setConfigExitCode(conf, GEN_ERROR);
+            return;
+        }
         if (IS_COMMAND(comm->commType))
         {
             singleCommand(list, list->comms[0], conf);
@@ -157,6 +162,12 @@ static void setUpCommands(CommList* list, sConfig* conf)
         int pipeFD[2];
         int heredocFD[2];
         bool pipeUsed = false;
+
+        if (comm->failed)
+        {
+            inputFD = STDIN_FILENO;
+            continue;
+        }
 
         // Set up pipelines for piping or heredocs.
 
@@ -212,9 +223,14 @@ static void setUpCommands(CommList* list, sConfig* conf)
 
     int status;
     for (size_t i = 0; i < list->count; i++)
-        waitpid(processIDs[i], &status, 0);
+    {
+        if (!list->comms[i]->failed)
+            waitpid(processIDs[i], &status, 0);
+        else
+            status = -1;
+    }
     free(processIDs);
-    conf->exitCode = WEXITSTATUS(status);
+    conf->exitCode = (status != -1 ? WEXITSTATUS(status) : GEN_ERROR);
 }
 
 static void setUpHandler(sConfig* conf, int sig)
