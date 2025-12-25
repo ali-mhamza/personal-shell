@@ -12,6 +12,7 @@ sConfig* initConfig(char** envp)
         conf->oldpwd = NULL;
         conf->exitCode = 0;
         conf->env = initEnvArray(envp); // Not set to NULL.
+        conf->homedir = getEnvVar(conf->env, "HOME");
     }
 
     return conf;
@@ -32,6 +33,7 @@ void freeConfig(sConfig** conf)
     
     free((*conf)->cwd);
     free((*conf)->oldpwd);
+    free((*conf)->homedir);
     freeEnvArray(&((*conf)->env));
     free(*conf);
     *conf = NULL;

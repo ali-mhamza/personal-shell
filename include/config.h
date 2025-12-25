@@ -7,6 +7,7 @@
 typedef struct shellConfig {
     char*           cwd;        // Cache the cwd to not regenerate it each time.
     char*           oldpwd;     // Save the previous directory in case the user switches to it.
+    char*           homedir;    // Save in case we unset 'HOME'.
     unsigned char   exitCode;   // Last command's exit code.
     envArray*       env;        // Our local environment variables.
 } sConfig;
