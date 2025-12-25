@@ -4,7 +4,7 @@ GNL_DIR = get_next_line
 INCLUDE = -I/usr/local/include -I$(GNL_DIR)
 GNL_LIB = -lgnl
 RL_LIBS = -lreadline -lhistory -lgnl
-NAME = shell
+NAME = minishell
 
 SRC_DIR = src
 SRCS = $(SRC_DIR)/*.c
