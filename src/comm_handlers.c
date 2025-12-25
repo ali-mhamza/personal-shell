@@ -174,29 +174,41 @@ static bool isValidNumber(const char* numStr)
 void handle_exit(CommList* list, Command* comm, sConfig* conf)
 {
     resetTerminal();
-    freeConfig(&conf);
     rl_clear_history();
     if (comm->argCount == 1)
     {
         freeCommList(&list);
+        freeConfig(&conf);
         exit(0);
     }
-    else if (comm->argCount > 1)
+    else if (comm->argCount == 2)
     {
-        unsigned char exitCode = 0;
+        int exitCode = 0;
         // Check if it's a number.
         if (!isValidNumber(comm->args[1]))
+        {
+            reportError("Argument Error", "Numeric argument required for command 'exit'.");
             exitCode = INVALID_EXIT;
+        }
 
         if (exitCode == 0)
         {
-            int code = atoi(comm->args[1]);
-            if ((code < 0) || (code > 255))
-                exitCode = EXIT_RANGE;
-            else
-                exitCode = (unsigned char) code;
+            exitCode = atoi(comm->args[1]);
+            if (exitCode < 0)
+            {
+                while (exitCode < 0)
+                    exitCode += 256;
+            }
+            else if (exitCode > 255)
+                exitCode = exitCode % 256;
         }
         freeCommList(&list);
+        freeConfig(&conf);
         exit(exitCode);
+    }
+    else
+    {
+        setConfigExitCode(conf, GEN_ERROR);
+        reportError("Argument Error", "Too many arguments to command 'exit'.");
     }
 }
