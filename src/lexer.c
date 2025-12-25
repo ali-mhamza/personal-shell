@@ -122,12 +122,15 @@ static void addWordToken(sConfig* conf, TokenObj* obj,
     strbuf* buf = initBuf();
     if (buf == NULL)
         return;
+    
+    TokType type = T_NULL;
 
     size_t i;
     for (i = 0; !isDelim(start[i]);)
     {
         if (start[i] == '\'')
         {
+            type = T_STR;
             i++;
             char* temp = consumeSingleString(&start[i]);
             appendBuf(buf, temp, -1);
@@ -136,6 +139,7 @@ static void addWordToken(sConfig* conf, TokenObj* obj,
         }
         else if (start[i] == '"')
         {
+            type = T_STR;
             i++;
             size_t size = 0;
             char* temp = consumeDoubleString(conf, &start[i], &size);
@@ -161,8 +165,10 @@ static void addWordToken(sConfig* conf, TokenObj* obj,
 
     size_t size = buf->count;
     char* tokStr = freeBuf(&buf, NO_FREE_CHARS);
-    int type = getWordType(tokStr, size);
-    addToken(obj, tokStr, size, type == -1 ? T_WORD : (TokType) type);
+    int wordType = getWordType(tokStr, size);
+    if (type == T_NULL)
+        type = (wordType == -1 ? T_WORD : (TokType) wordType);
+    addToken(obj, tokStr, size, type);
     (*index) += i;
     free(tokStr);
 }
