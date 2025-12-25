@@ -252,16 +252,15 @@ static void checkEOF(sConfig* conf, char* line)
 {
     if (line == NULL)
     {
+        freeConfig(&conf);
         if (errno == 0) // Hit EOF, not an error.
         {
-            freeConfig(&conf);
             resetTerminal();
             rl_clear_history();
-            exit(0);
+            exit(EXIT_SUCCESS);
         }
         else if (isatty(STDIN_FILENO))
         {
-            setConfigExitCode(conf, GEN_ERROR);
             reportError("Internal Error", "Failed to read input.");
             exit(EXIT_FAILURE);
         }
@@ -319,6 +318,7 @@ int main(int argc, char* argv[], char* envp[])
         {
             resetTerminal();
             rl_clear_history();
+            freeConfig(&conf);
             exit(EXIT_FAILURE); // Fatal.
         }
 
