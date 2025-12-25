@@ -18,6 +18,5 @@ bool    isValidVar(char* name);
 bool    isWordChar(char c);
 char*   expandEnv(sConfig* conf, char* start, size_t* origSize, size_t* index);
 char*   expandInPlace(sConfig* conf, char* line, size_t *size);
-char*   removeQuotes(char* input, size_t* size);
 
 #endif

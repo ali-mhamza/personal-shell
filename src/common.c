@@ -98,8 +98,13 @@ char* expandInPlace(sConfig* conf, char* line, size_t *size)
         char* first = strndup(final, temp - final);
         char* insert = expandEnv(conf, temp + 1, size, &index);
         char* part = strjoin(first, insert);
+
+        char* handle = final;
         final = strjoin(part, final + index);
+        if (handle != line)
+            free(handle);
         start = final + index;
+
         free(first);
         free(insert);
         free(part);
@@ -108,43 +113,5 @@ char* expandInPlace(sConfig* conf, char* line, size_t *size)
     if (final == line)
         final = strdup(line);
 
-    return final;
-}
-
-char* removeQuotes(char* input, size_t* size)
-{
-    char* temp;
-    char* final = input;
-
-    // Single quotes first.
-    while (((temp = strchr(final, '\'')) != NULL)
-            && (temp < final + *size))
-    {
-        char* first = strndup(final, temp - final);
-        char* second = strdup(temp + 1);
-        if (final != input)
-            free(final);
-        final = strjoin(first, second);
-        free(first);
-        free(second);
-        (*size)--;
-    }
-
-    while (((temp = strchr(final, '"')) != NULL)
-            && (temp < final + *size))
-    {
-        char* first = strndup(final, temp - final);
-        char* second = strdup(temp + 1);
-        if (final != input)
-            free(final);
-        final = strjoin(first, second);
-        free(first);
-        free(second);
-        (*size)--;
-    }
-
-    if (final == input)
-        final = strdup(input);
-    
     return final;
 }
