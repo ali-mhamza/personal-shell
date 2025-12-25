@@ -67,6 +67,8 @@ void handle_cd(CommList* list, Command* comm, sConfig* conf)
     else
         path = strdup(comm->args[1]);
     
+    if (conf->oldpwd != NULL)
+        free(conf->oldpwd);
     conf->oldpwd = strdup(conf->cwd);
     int ret = chdir(path);
     free(path);
