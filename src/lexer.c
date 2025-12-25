@@ -1,6 +1,7 @@
 #include "../include/lexer.h"
 #include "../include/common.h"
 #include "../include/error.h"
+#include "../include/strbuf.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -115,7 +116,6 @@ static char* expandVar(sConfig* conf, char* start, size_t* size)
         return strdup("");
 }
 
-#include "../include/strbuf.h"
 static void addWordToken(sConfig* conf, TokenObj* obj,
     char* start, size_t* index)
 {
