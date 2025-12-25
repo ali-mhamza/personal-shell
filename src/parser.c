@@ -275,8 +275,7 @@ static int parseRedirect(sConfig* conf, Command* comm,
 static bool parseNewCommand(sConfig* conf, CommList* list,
     TokenObj* tokens, size_t* start)
 {
-    if (!IS_COMMAND(tokens->tokTypes[*start])
-        && (tokens->tokTypes[*start] != T_WORD))
+    if (!IS_START(tokens->tokTypes[*start]))
     {
         setConfigExitCode(conf, GEN_ERROR);
         reportError("Syntax Error", "Unexpected token '%s'.",
@@ -322,6 +321,11 @@ CommList* parseCommands(sConfig* conf, TokenObj* tokens)
         return NULL;
     for (size_t start = 0; start < tokens->count;)
     {
+        if (tokens->tokStrs[start][0] == '\0')
+        {
+            start++;
+            continue;
+        }
         if (parseNewCommand(conf, list, tokens, &start))
             continue;
         freeCommList(&list);

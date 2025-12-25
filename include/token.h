@@ -24,6 +24,7 @@ typedef enum TokType {
 } TokType;
 
 #define IS_COMMAND(type)    (((type) >= T_ECHO) && ((type) <= T_EXIT))
+#define IS_START(type)      (IS_COMMAND(type) || (type == T_WORD) || (type == T_STR))
 #define IS_REDIRECT(type)   (((type) >= T_RE_R) && ((type) <= T_RE_DR))
 #define IN_REDIRECT(type)   (((type) == T_RE_L))
 #define OUT_REDIRECT(type)  (((type) == T_RE_R) || ((type) == T_RE_DR))
