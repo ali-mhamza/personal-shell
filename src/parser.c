@@ -247,7 +247,7 @@ static int parseRedirect(sConfig* conf, Command* comm,
     int flags;
     if (redirect == T_RE_R)
     {
-        flags = O_WRONLY | O_CREAT;
+        flags = O_WRONLY | O_CREAT | O_TRUNC;
         if (comm->redirectIn != -1)
             close(comm->redirectIn);
     }
@@ -263,7 +263,7 @@ static int parseRedirect(sConfig* conf, Command* comm,
         if (comm->redirectOut != -1)
             close(comm->redirectOut);
     }
-    int fd = open(path, flags);
+    int fd = open(path, flags, 0644);
     if (fd != -1)
         IN_REDIRECT(redirect) ? (comm->redirectIn = fd) :
             (comm->redirectOut = fd);
