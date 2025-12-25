@@ -53,7 +53,7 @@ static void addSingleString(TokenObj* obj, char* line, size_t* index)
 
 // Temporarily: no expansion of $ variables.
 static void addDoubleString(sConfig* conf, TokenObj* obj, char* line, size_t* index)
-{    
+{
     size_t size = 0;
     while (line[size] != '\0')
     {
@@ -70,7 +70,7 @@ static void addDoubleString(sConfig* conf, TokenObj* obj, char* line, size_t* in
 }
 
 static void addWordToken(sConfig* conf, TokenObj* obj, char* line, size_t* index)
-{    
+{
     const char* commands[] = {
         "echo", "cd", "pwd", "export",
         "unset", "env", "exit", NULL
@@ -83,7 +83,9 @@ static void addWordToken(sConfig* conf, TokenObj* obj, char* line, size_t* index
         size++;
     }
 
-    char* final = expandInPlace(conf, line, &size);
+    char* temp = expandInPlace(conf, line, &size);
+    char* final = removeQuotes(temp, &size);
+    free(temp);
 
     for (int i = 0; commands[i] != NULL; i++)
     {
@@ -92,15 +94,13 @@ static void addWordToken(sConfig* conf, TokenObj* obj, char* line, size_t* index
         if (!strncmp(final, commands[i], size))
         {
             addToken(obj, final, size, (TokType) i);
-            if (final != line)
-                free(final);
+            free(final);
             return;
         }
     }
 
     addToken(obj, final, size, T_WORD);
-    if (final != line)
-        free(final);
+    free(final);
 }
 
 TokenObj* getTokens(sConfig* conf, char* line)
@@ -116,11 +116,11 @@ TokenObj* getTokens(sConfig* conf, char* line)
         switch (line[i])
         {
             case '>':
-            case '<':   addRedirect(obj, line, &i);             break;
-            case '|':   addToken(obj, &line[i++], 1, T_PIPE);   break;
-            case '=':   addToken(obj, &line[i++], 1, T_EQUAL);  break;
-            case '\'':  addSingleString(obj, &line[++i], &i);   break;
-            case '"':   addDoubleString(conf, obj, &line[++i], &i);   break;
+            case '<':   addRedirect(obj, line, &i);                 break;
+            case '|':   addToken(obj, &line[i++], 1, T_PIPE);       break;
+            case '=':   addToken(obj, &line[i++], 1, T_EQUAL);      break;
+            case '\'':  addSingleString(obj, &line[++i], &i);       break;
+            case '"':   addDoubleString(conf, obj, &line[++i], &i); break;
             case '-':
             {
                 if (isalpha(line[i + 1]))
