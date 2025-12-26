@@ -7,6 +7,7 @@
 #include "../include/sighandle.h"
 #include <errno.h>
 #include <readline/readline.h>
+#include <readline/history.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
