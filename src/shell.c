@@ -297,33 +297,19 @@ static void execLine(sConfig* conf, char* line)
     }
 }
 
-static char* readFile(char* path)
+static void checkExecFile(sConfig* conf, int argc, char* file)
 {
-    strbuf* buf = initBuf();
-    if (buf == NULL) return NULL; // Fatal.
-
-    int fd = open(path, O_RDONLY);
-    if (fd == -1) return NULL;
+    if (argc == 1) return; // -> file == NULL.
+    int fd = open(file, O_RDONLY);
+    if (fd == -1) return;
 
     char* line;
     while ((line = get_next_line(fd)) != NULL)
     {
-        size_t len = (line != NULL ? strlen(line) : 0);
-        if ((len > 0) && (line[len - 1] == '\n'))
-            line[len - 1] = '\0';
-        appendBuf(buf, line, -1);
+        printf("LINE: %s\n", line); // FOR DEBUGGING. REMOVE WHEN DONE.
+        execLine(conf, line);
     }
-    return freeBuf(&buf, NO_FREE_CHARS);
-}
 
-static void checkExecFile(sConfig* conf, int argc, char* file)
-{
-    if (argc == 1) // -> file == NULL.
-        return;
-    char* content = readFile(file);
-    if (content == NULL)
-        exit(EXIT_FAILURE); // Fatal.
-    execLine(conf, content);
     unsigned char code = conf->exitCode;
     freeConfig(&conf);
     exit(code);
