@@ -232,9 +232,10 @@ static int parseRedirect(sConfig* conf, Command* comm,
     TokenObj* tokens, size_t* start)
 {
     TokType redirect = tokens->tokTypes[(*start)++];
-    if (tokens->tokTypes[*start] == T_NULL)
+    if ((tokens->tokTypes[*start] != T_WORD)
+        && (tokens->tokTypes[*start] != T_STR))
     {
-        setConfigExitCode(conf, GEN_ERROR);
+        setConfigExitCode(conf, BUILTIN_MISUSE);
         reportError("Syntax Error",
             "Expect file name after redirect token.");
         return -1;
@@ -281,7 +282,7 @@ static bool parseNewCommand(sConfig* conf, CommList* list,
 {
     if (!IS_START(tokens->tokTypes[*start]))
     {
-        setConfigExitCode(conf, GEN_ERROR);
+        setConfigExitCode(conf, BUILTIN_MISUSE);
         reportError("Syntax Error", "Unexpected token '%s'.",
             tokens->tokStrs[*start]);
         return false;

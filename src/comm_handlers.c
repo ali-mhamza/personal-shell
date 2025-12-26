@@ -190,7 +190,7 @@ void handle_exit(CommList* list, Command* comm, sConfig* conf)
         if (!isValidNumber(comm->args[1]))
         {
             reportError("Argument Error", "Numeric argument required for command 'exit'.");
-            exitCode = INVALID_EXIT;
+            exitCode = BUILTIN_MISUSE;
         }
 
         if (exitCode == 0)
