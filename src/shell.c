@@ -8,9 +8,11 @@
 #include "../include/sighandle.h"
 #include "../include/strbuf.h"
 #include <errno.h>
+#include <fcntl.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -141,11 +143,8 @@ static void setUpCommands(CommList* list, sConfig* conf)
     if (list->count == 1) // No pipes.
     {
         Command* comm = list->comms[0];
-        if (comm->failed)
-        {
-            setConfigExitCode(conf, GEN_ERROR);
-            return;
-        }
+        if (comm->failed) // Failed redirect.
+            return; // Already set an error exit code in the parser.
         if (IS_COMMAND(comm->commType))
         {
             singleCommand(list, list->comms[0], conf);
@@ -298,10 +297,38 @@ static void execLine(sConfig* conf, char* line)
     }
 }
 
+static char* readFile(char* path)
+{
+    strbuf* buf = initBuf();
+    if (buf == NULL) return NULL; // Fatal.
+
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) return NULL;
+
+    char* line;
+    while ((line = get_next_line(fd)) != NULL)
+    {
+        size_t len = (line != NULL ? strlen(line) : 0);
+        if ((len > 0) && (line[len - 1] == '\n'))
+            line[len - 1] = '\0';
+        appendBuf(buf, line, -1);
+    }
+    return freeBuf(&buf, NO_FREE_CHARS);
+}
+
+static void checkExecFile(sConfig* conf, int argc, char* file)
+{
+    if (argc == 1) // -> file == NULL.
+        return;
+    char* content = readFile(file);
+    if (content == NULL)
+        exit(EXIT_FAILURE); // Fatal.
+    execLine(conf, content);
+    exit(conf->exitCode);
+}
+
 int main(int argc, char* argv[], char* envp[])
 {
-    (void) argc; (void) argv;
-
     sConfig* conf = initConfig(envp);
     if (conf == NULL)
         exit(EXIT_FAILURE); // Fatal.
@@ -310,6 +337,9 @@ int main(int argc, char* argv[], char* envp[])
 
     resetTerminal();
     disableCtrlPrint();
+
+    // Does not yet support scripts with arguments.
+    checkExecFile(conf, argc, argv[1]);
 
     while (true)
     {
