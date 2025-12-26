@@ -1,6 +1,6 @@
 #include <string.h>
 
-size_t	strlcat(char *dst, const char *src, size_t dstsize)
+size_t	p_strlcat(char *dst, const char *src, size_t dstsize)
 {
 	size_t	dst_len;
 	size_t	src_len;

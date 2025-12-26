@@ -9,7 +9,7 @@
 
 // Temporary.
 char	**split(char const *s, char c);
-size_t	strlcat(char *dst, const char *src, size_t dstsize);
+size_t	p_strlcat(char *dst, const char *src, size_t dstsize);
 char	*strjoin(char const *s1, char const *s2);
 char    *itoa(int n);
 
