@@ -257,6 +257,7 @@ static void checkEOF(sConfig* conf, char* line)
         {
             resetTerminal();
             rl_clear_history();
+            write(1, "\n", 1);
             exit(EXIT_SUCCESS);
         }
         else if (isatty(STDIN_FILENO))
