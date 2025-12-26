@@ -324,7 +324,9 @@ static void checkExecFile(sConfig* conf, int argc, char* file)
     if (content == NULL)
         exit(EXIT_FAILURE); // Fatal.
     execLine(conf, content);
-    exit(conf->exitCode);
+    unsigned char code = conf->exitCode;
+    freeConfig(&conf);
+    exit(code);
 }
 
 int main(int argc, char* argv[], char* envp[])
