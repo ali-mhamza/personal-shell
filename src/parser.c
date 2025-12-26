@@ -258,7 +258,7 @@ static int parseRedirect(sConfig* conf, Command* comm,
         if (comm->redirectIn != -1)
             close(comm->redirectIn);
     }
-    else if (redirect == T_RE_L)
+    else // if (redirect == T_RE_L)
     {
         flags = O_RDONLY;
         if (comm->redirectOut != -1)
