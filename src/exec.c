@@ -145,8 +145,19 @@ void runExec(char* path, char** args, sConfig* conf)
     int ret = execve(command, args, tempEnvp);
     if (ret == -1)
     {
-        setConfigExitCode(conf, GEN_ERROR);
-        reportError("Command Failure", "%s.", strerror(errno));
+        if (errno == ENOEXEC) // File should be treated as a script, not an executable.
+        {
+            char* tempArgv[] = {"./minishell", command, NULL};
+            int ret = execve("./minishell", tempArgv, tempEnvp);
+            if (ret == -1)
+                exit(NOT_EXEC);
+            exit(conf->exitCode);
+        }
+        else
+        {
+            setConfigExitCode(conf, GEN_ERROR);
+            reportError("Command Failure", "%s.", strerror(errno));
+        }
     }
     if (command != path) // To avoid double free-ing path later when freeing tokens.
         free(command);
