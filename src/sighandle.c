@@ -1,6 +1,7 @@
 #include "../include/sighandle.h"
 #include "../include/common.h"
 #include <readline/readline.h>
+#include <readline/history.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
