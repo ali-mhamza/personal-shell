@@ -347,12 +347,11 @@ static void checkExecFile(sConfig* conf, int argc, char* file)
     int fd = open(file, O_RDONLY);
     if (fd == -1) return;
 
+    resetConfigCWD(conf);
+
     char* line;
     while ((line = get_next_line(fd)) != NULL)
-    {
-        printf("LINE: %s\n", line); // FOR DEBUGGING. REMOVE WHEN DONE.
         execLine(conf, line);
-    }
 
     unsigned char code = conf->exitCode;
     freeConfig(&conf);
