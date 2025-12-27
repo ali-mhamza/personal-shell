@@ -249,20 +249,20 @@ static int parseRedirect(sConfig* conf, Command* comm,
     if (redirect == T_RE_R)
     {
         flags = O_WRONLY | O_CREAT | O_TRUNC;
-        if (comm->redirectIn != -1)
-            close(comm->redirectIn);
+        if (comm->redirectOut != -1)
+            close(comm->redirectOut);
     }
     else if (redirect == T_RE_DR)
     {
         flags = O_WRONLY | O_CREAT | O_APPEND;
-        if (comm->redirectIn != -1)
-            close(comm->redirectIn);
+        if (comm->redirectOut != -1)
+            close(comm->redirectOut);
     }
     else // if (redirect == T_RE_L)
     {
         flags = O_RDONLY;
-        if (comm->redirectOut != -1)
-            close(comm->redirectOut);
+        if (comm->redirectIn != -1)
+            close(comm->redirectIn);
     }
     int fd = open(path, flags, 0644);
     if (fd != -1)
