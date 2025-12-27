@@ -182,8 +182,21 @@ static void setUpCommands(CommList* list, sConfig* conf)
         processIDs[i] = id;
 
 		if (id == 0) // Child process logic.
-		{
-			setUpFDs(comm, inputFD, pipeFD, heredocFD, pipeUsed);
+		{   
+            setUpFDs(comm, inputFD, pipeFD, heredocFD, pipeUsed);
+
+            if (IS_REDIRECT(comm->commType))
+            {
+                char* line;
+                while ((line = get_next_line(STDIN_FILENO)) != NULL)
+                {
+                    size_t len = strlen(line);
+                    if ((len > 0) && (line[len - 1] == '\n'))
+                        line[len - 1] = '\0';
+                    write(STDOUT_FILENO, line, strlen(line));
+                }
+                exit(0);
+            }
             runCommand(list, comm, conf);
 
             if (comm->redirectIn != -1)
@@ -191,7 +204,7 @@ static void setUpCommands(CommList* list, sConfig* conf)
             if (comm->redirectOut != -1)
                 close(comm->redirectOut);
 
-            exit(conf->exitCode); // Temporarily.
+            exit(conf->exitCode);
 		}
         else // Parent process logic.
         {
