@@ -27,10 +27,12 @@ void handle_echo(CommList* list, Command* comm, sConfig* conf)
 
     for (; index < comm->argCount; index++)
     {
-        printf("%s%s", comm->args[index],
-            (index == comm->argCount - 1 ? "" : " "));
+        write(STDOUT_FILENO, comm->args[index], strlen(comm->args[index]));
+        if (index != comm->argCount - 1)
+            write(STDOUT_FILENO, " ", 1);
     }
-    printf("%s", noNewLine ? "" : "\n");
+    if (!noNewLine)
+        write(1, "\n", 1);
 }
 
 void handle_cd(CommList* list, Command* comm, sConfig* conf)
@@ -86,7 +88,8 @@ void handle_cd(CommList* list, Command* comm, sConfig* conf)
 void handle_pwd(CommList* list, Command* comm, sConfig* conf)
 {
     (void) list; (void) comm;
-    printf("%s\n", conf->cwd);
+    write(1, conf->cwd, strlen(conf->cwd));
+    write(1, "\n", 1);
 }
 
 void handle_export(CommList* list, Command* comm, sConfig* conf)
