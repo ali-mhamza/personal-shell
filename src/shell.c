@@ -55,11 +55,10 @@ static void runCommand(CommList* list, Command* comm, sConfig* conf)
     // error.
 }
 
-static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
-    int heredocFD[], bool pipeUsed)
-{   
-    // Set up input file descriptor.
+/* File descriptor set-up for piping. */
 
+static int setUpInput(Command* comm, int inputFD, int heredocFD[])
+{
     int finalIn;
     if (comm->heredoc != NULL)
         finalIn = heredocFD[0];
@@ -70,9 +69,12 @@ static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
 
     if (finalIn != STDIN_FILENO)
         dup2(finalIn, STDIN_FILENO);
+    
+    return finalIn;
+}
 
-    // Set up output file descriptor.
-
+static void setUpOutput(Command* comm, int pipeFD[], bool pipeUsed)
+{
     int finalOut;
     if (comm->redirectOut != -1)
         finalOut = comm->redirectOut;
@@ -83,6 +85,16 @@ static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
 
     if (finalOut != STDOUT_FILENO)
         dup2(finalOut, STDOUT_FILENO);
+}
+
+static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
+    int heredocFD[], bool pipeUsed)
+{   
+    // Set up input file descriptor.
+    int finalIn = setUpInput(comm, inputFD, heredocFD);
+
+    // Set up output file descriptor.
+    setUpOutput(comm, pipeFD, pipeUsed);
 
     // Close unnecessary file descriptors.
 
@@ -92,6 +104,33 @@ static void setUpFDs(Command* comm, int inputFD, int pipeFD[],
         close(heredocFD[1]);
     if ((inputFD != STDIN_FILENO) && (inputFD != finalIn))
         close(inputFD);
+}
+
+static void closeFDs(Command* comm, int* inputFD, int pipeFD[],
+    int heredocFD[], bool pipeUsed)
+{
+    // Close open pipes and files.
+            
+    if (comm->redirectIn != -1)
+        close(comm->redirectIn);
+    if (comm->redirectOut != -1)
+        close(comm->redirectOut);
+    
+    if (pipeUsed)
+        close(pipeFD[1]);
+
+    if (comm->heredoc != NULL)
+    {
+        close(heredocFD[0]);
+        write(heredocFD[1], comm->heredoc, strlen(comm->heredoc));
+        close(heredocFD[1]);
+    }
+
+    if ((*inputFD != STDIN_FILENO) && (*inputFD != comm->redirectIn))
+        close(*inputFD);
+
+    // Reassign inputFD for next command's read.
+    *inputFD = (pipeUsed ? pipeFD[0] : STDIN_FILENO);
 }
 
 static void singleCommand(CommList* list, Command* comm, sConfig* conf)
@@ -135,31 +174,74 @@ static void singleCommand(CommList* list, Command* comm, sConfig* conf)
     }
 }
 
-static void setUpCommands(CommList* list, sConfig* conf)
+static bool execSmallList(CommList* list, sConfig* conf)
 {
     if (list->count == 0) // Empty input got through.
-        return;
+        return true;
     
     if (list->count == 1) // No pipes.
     {
         Command* comm = list->comms[0];
         if (comm->failed) // Failed redirect.
-            return; // Already set an error exit code in the parser.
+            return true; // Already set an error exit code in the parser.
         if (IS_COMMAND(comm->commType))
         {
             singleCommand(list, list->comms[0], conf);
-            return;
+            return true;
         }
     }
-    
+
+    return false;
+}
+
+static void runChildProcess(CommList* list, Command* comm, sConfig* conf)
+{
+    if (IS_REDIRECT(comm->commType))
+    {
+        char* line;
+        while ((line = get_next_line(STDIN_FILENO)) != NULL)
+        {
+            size_t len = strlen(line);
+            if ((len > 0) && (line[len - 1] == '\n'))
+                line[len - 1] = '\0';
+            write(STDOUT_FILENO, line, strlen(line));
+        }
+        exit(0);
+    }
+    runCommand(list, comm, conf);
+
+    if (comm->redirectIn != -1)
+        close(comm->redirectIn);
+    if (comm->redirectOut != -1)
+        close(comm->redirectOut);
+
+    exit(conf->exitCode);
+}
+
+static void waitChildProcesses(CommList* list,
+    pid_t* processIDs, sConfig* conf)
+{
+    int status;
+    for (size_t i = 0; i < list->count; i++)
+    {
+        if (!list->comms[i]->failed)
+            waitpid(processIDs[i], &status, 0);
+        else
+            status = -1;
+    }
+    free(processIDs);
+    conf->exitCode = (status != -1 ? WEXITSTATUS(status) : GEN_ERROR);
+}
+
+static void setUpCommands(CommList* list, sConfig* conf)
+{    
     int inputFD = STDIN_FILENO;
     pid_t* processIDs = malloc(list->count * sizeof(int));
 
     for (size_t i = 0; i < list->count; i++)
     {   
         Command* comm = list->comms[i];
-        int pipeFD[2];
-        int heredocFD[2];
+        int pipeFD[2], heredocFD[2];
         bool pipeUsed = false;
 
         if (comm->failed)
@@ -184,65 +266,13 @@ static void setUpCommands(CommList* list, sConfig* conf)
 		if (id == 0) // Child process logic.
 		{   
             setUpFDs(comm, inputFD, pipeFD, heredocFD, pipeUsed);
-
-            if (IS_REDIRECT(comm->commType))
-            {
-                char* line;
-                while ((line = get_next_line(STDIN_FILENO)) != NULL)
-                {
-                    size_t len = strlen(line);
-                    if ((len > 0) && (line[len - 1] == '\n'))
-                        line[len - 1] = '\0';
-                    write(STDOUT_FILENO, line, strlen(line));
-                }
-                exit(0);
-            }
-            runCommand(list, comm, conf);
-
-            if (comm->redirectIn != -1)
-                close(comm->redirectIn);
-            if (comm->redirectOut != -1)
-                close(comm->redirectOut);
-
-            exit(conf->exitCode);
+            runChildProcess(list, comm, conf);
 		}
         else // Parent process logic.
-        {
-            // Close open pipes and files.
-            
-            if (comm->redirectIn != -1)
-                close(comm->redirectIn);
-            if (comm->redirectOut != -1)
-                close(comm->redirectOut);
-            
-            if (pipeUsed)
-                close(pipeFD[1]);
-
-            if (comm->heredoc != NULL)
-            {
-                close(heredocFD[0]);
-                write(heredocFD[1], comm->heredoc, strlen(comm->heredoc));
-                close(heredocFD[1]);
-            }
-
-            if ((inputFD != STDIN_FILENO) && (inputFD != comm->redirectIn))
-                close(inputFD);
-
-            // Reassign inputFD for next command's read.
-            inputFD = (pipeUsed ? pipeFD[0] : STDIN_FILENO);
-        }
+            closeFDs(comm, &inputFD, pipeFD, heredocFD, pipeUsed);
     }
 
-    int status;
-    for (size_t i = 0; i < list->count; i++)
-    {
-        if (!list->comms[i]->failed)
-            waitpid(processIDs[i], &status, 0);
-        else
-            status = -1;
-    }
-    free(processIDs);
-    conf->exitCode = (status != -1 ? WEXITSTATUS(status) : GEN_ERROR);
+    waitChildProcesses(list, processIDs, conf);
 }
 
 static void setUpHandler(sConfig* conf, int sig)
@@ -304,7 +334,8 @@ static void execLine(sConfig* conf, char* line)
                 }
                 return;
             }
-            setUpCommands(list, conf);
+            if ((list->count > 1) || !execSmallList(list, conf))
+                setUpCommands(list, conf);
             freeCommList(&list);
         }
     }
