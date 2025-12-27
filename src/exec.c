@@ -147,10 +147,15 @@ void runExec(char* path, char** args, sConfig* conf)
     {
         if (errno == ENOEXEC) // File should be treated as a script, not an executable.
         {
+            // Only works if the shell executable is in the
+            // current directory.
             char* tempArgv[] = {"./minishell", command, NULL};
             int ret = execve("./minishell", tempArgv, tempEnvp);
             if (ret == -1)
+            {
+                reportError("Script Failure", "%s.", strerror(errno));
                 exit(NOT_EXEC);
+            }
             exit(conf->exitCode);
         }
         else
