@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -Wextra -Werror
+CFLAGS = -O2 -Wall -Wextra -Wno-unused-result -Werror
 GNL_DIR = get_next_line
 VFPRINTF_DIR = ft_vfprintf
 INCLUDE = -I/usr/local/include -I$(GNL_DIR)
