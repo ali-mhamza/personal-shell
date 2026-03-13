@@ -19,7 +19,7 @@ typedef enum TokType {
     T_RE_R,     // >
     T_RE_L,     // <
     T_RE_DR,    // >>
-    T_HEREDOC,    // <<
+    T_HEREDOC,  // <<
     T_NULL
 } TokType;
 
