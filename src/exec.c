@@ -27,7 +27,7 @@
 
 static char* checkDirContent(char* dirPath, char* filePath)
 {
-    char stackPathBuf[1024];
+    static char stackPathBuf[1024];
     // dirPath/entryName[\0]
     size_t needed = strlen(dirPath) + 1 + strlen(filePath) + 1;
     char* fullPath = stackPathBuf;
