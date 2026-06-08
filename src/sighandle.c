@@ -1,12 +1,13 @@
 #include "../include/sighandle.h"
 #include "../include/common.h"
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 void handleSigInt(int sig)
 {   

@@ -6,11 +6,11 @@
 #include "../include/parser.h"
 #include "../include/sighandle.h"
 #include <errno.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 void handle_echo(CommList* list, Command* comm, sConfig* conf)
 {

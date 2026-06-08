@@ -7,18 +7,17 @@
 #include "../include/parser.h"
 #include "../include/sighandle.h"
 #include "../include/strbuf.h"
+#include "../get_line/get_line.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-#include "../get_line/get_line.h"
+#include <readline/readline.h>
+#include <readline/history.h>
 
 volatile sig_atomic_t gSignal = 0;
 

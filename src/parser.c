@@ -3,14 +3,13 @@
 #include "../include/error.h"
 #include "../include/sighandle.h"
 #include "../include/strbuf.h"
+#include "../get_line/get_line.h"
 #include <fcntl.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include "get_line.h"
 
 /* Commands. */
 
