@@ -1,7 +1,7 @@
 *.txt
-minishell
-test.c
-test
-ft*
-get_next_line/
-.vscode/
+*.json
+
+# Build files.
+*.o
+*.a
+shell

@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "get_next_line.h"
+#include "get_line.h"
 
 /* Commands. */
 
@@ -149,7 +149,7 @@ static char* consumeHereDocBody(sConfig* conf, char* delim, bool quoteDelim)
     {
         write(1, "> ", 2);
         gSignal = SIG_ATOMIC_MIN;
-        char *line = get_next_line(0);
+        char *line = getLine(0);
         if (gSignal == SIGINT)
         {
             freeBuf(&buf, FREE_CHARS);

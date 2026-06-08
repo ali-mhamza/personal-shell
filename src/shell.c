@@ -18,7 +18,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "../get_next_line/get_next_line.h"
+#include "../get_line/get_line.h"
 
 volatile sig_atomic_t gSignal = 0;
 
@@ -199,7 +199,7 @@ static void runChildProcess(CommList* list, Command* comm, sConfig* conf)
     if (IS_REDIRECT(comm->commType))
     {
         char* line;
-        while ((line = get_next_line(STDIN_FILENO)) != NULL)
+        while ((line = getLine(STDIN_FILENO)) != NULL)
         {
             size_t len = strlen(line);
             if ((len > 0) && (line[len - 1] == '\n'))
@@ -350,7 +350,7 @@ static void checkExecFile(sConfig* conf, int argc, char* file)
     resetConfigCWD(conf);
 
     char* line;
-    while ((line = get_next_line(fd)) != NULL)
+    while ((line = getLine(fd)) != NULL)
         execLine(conf, line);
 
     unsigned char code = conf->exitCode;
@@ -391,7 +391,7 @@ int main(int argc, char* argv[], char* envp[])
             line = readline(prompt);
         else
         {
-            line = get_next_line(STDIN_FILENO);
+            line = getLine(STDIN_FILENO);
             size_t len = (line != NULL ? strlen(line) : 0);
             if ((len > 0) && (line[len - 1] == '\n'))
                 line[len - 1] = '\0';
